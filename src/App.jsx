@@ -6,6 +6,7 @@ import guidesData from './data/guides.json';
 import runesData from './data/runes.json';
 import { MathEngine, DataDragon } from './utils/api';
 import { generateMatchup, getAllMatchups, championTraits, getCounters, getStrongAgainst } from './data/matchupEngine';
+import { getChampionGuide, getAllGuides, guideStats } from './data/guidesEngine';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -13,7 +14,6 @@ const SPLASH_BASE = championsData.meta.splashBase;
 const ITEM_ICON_BASE = itemsData.meta.iconBase;
 const CHAMPIONS = championsData.champions;
 const ITEMS = itemsData.items;
-const GUIDES = guidesData.championGuides;
 const RUNES = runesData.trees;
 const RUNE_PAGES = runesData.recommendedPages;
 const JUNGLE_PATHS = guidesData.junglePaths;
@@ -133,7 +133,7 @@ export default function App() {
     dps: MathEngine.calcDPS(calc.ad, calc.as, calc.crit, 2.0)
   }), [calc, level]);
 
-  const guide = selected ? GUIDES[selected.id] : null;
+  const guide = selected ? getChampionGuide(selected.id) : null;
 
   const counterPicks = useMemo(() => {
     if (!enemies.some(Boolean)) return null;
@@ -256,7 +256,20 @@ export default function App() {
                 </Card>
                 {guide && (
                   <Card title="Quick Tips" icon="💡">
-                    <div className="space-y-2">{guide.tips?.slice(0, 3).map((tip, i) => <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-purple-400">•</span>{tip}</div>)}</div>
+                    <div className="space-y-2">
+                      {guide.lanePhase?.tips?.slice(0, 3).map((tip, i) => (
+                        <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-purple-400">•</span>{tip}</div>
+                      ))}
+                      {!guide.lanePhase?.tips && guide.strengths?.slice(0, 3).map((s, i) => (
+                        <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-green-400">+</span>{s}</div>
+                      ))}
+                    </div>
+                    <div className="mt-3 text-xs text-slate-400">
+                      <span className={`px-2 py-0.5 rounded mr-2 ${guide.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' : guide.difficulty === 'Hard' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                        {guide.difficulty}
+                      </span>
+                      {guide.playstyle}
+                    </div>
                     <button onClick={() => setTab('guides')} className="mt-3 text-purple-400 text-sm hover:underline">View full guide →</button>
                   </Card>
                 )}
@@ -274,58 +287,152 @@ export default function App() {
                   <option value="">Choose a champion...</option>
                   {Object.values(CHAMPIONS).sort((a, b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
-                {selected && <div className="mt-4 flex items-center gap-3"><ChampIcon id={selected.id} size={48} /><div><b>{selected.name}</b><div className="text-sm text-slate-400">{selected.role}</div></div></div>}
+                {selected && (
+                  <div className="mt-4 p-3 bg-slate-700/30 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <ChampIcon id={selected.id} size={56} />
+                      <div>
+                        <b className="text-lg">{selected.name}</b>
+                        <div className="text-sm text-slate-400">{guide?.role || selected.role} • {guide?.damageType || 'Physical'}</div>
+                        <div className="text-xs text-purple-400">{guide?.playstyle || 'Fighter'}</div>
+                      </div>
+                    </div>
+                    {guide && (
+                      <div className="mt-3 flex gap-2">
+                        <span className={`text-xs px-2 py-1 rounded ${guide.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' : guide.difficulty === 'Hard' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                          {guide.difficulty} Difficulty
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
               {guide && (<>
-                <Card title="Power Spikes" icon="⚡">
-                  <div className="space-y-2">
-                    {guide.powerSpikes?.map((spike, i) => (
-                      <div key={i} className="flex gap-3 p-2 bg-slate-700/30 rounded-lg">
-                        <span className="text-yellow-400 font-bold text-sm whitespace-nowrap">{spike.time}</span>
-                        <span className="text-sm text-slate-300">{spike.description}</span>
+                <Card title="Strengths & Weaknesses" icon="⚖️">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs text-green-400 font-bold mb-1">STRENGTHS</div>
+                      <div className="space-y-1">
+                        {guide.strengths?.slice(0, 4).map((s, i) => (
+                          <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-green-400">+</span>{s}</div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                    <div>
+                      <div className="text-xs text-red-400 font-bold mb-1">WEAKNESSES</div>
+                      <div className="space-y-1">
+                        {guide.weaknesses?.slice(0, 4).map((w, i) => (
+                          <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-red-400">-</span>{w}</div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </Card>
-                <Card title="Core Build" icon="🛠️">
-                  <div className="space-y-2">
-                    <div className="text-xs text-slate-400 mb-2">Skill Order: <b className="text-white">{guide.skillOrder}</b></div>
-                    <div className="text-xs text-slate-400">Summoners: <b className="text-white">{guide.summonerSpells?.join(' + ')}</b></div>
+                <Card title="Build & Runes" icon="🛠️">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs text-slate-400 mb-1">SUMMONER SPELLS</div>
+                      <div className="text-sm font-bold text-white">{guide.summonerSpells?.join(' + ')}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-400 mb-1">SKILL ORDER</div>
+                      <div className="text-sm font-bold text-white">{typeof guide.skillOrder === 'object' ? guide.skillOrder.order : guide.skillOrder}</div>
+                      {guide.skillOrder?.explanation && <div className="text-xs text-slate-500 mt-1">{guide.skillOrder.explanation}</div>}
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-400 mb-1">KEYSTONE</div>
+                      <div className="text-sm font-bold text-yellow-400">{guide.runes?.keystone}</div>
+                      <div className="text-xs text-slate-500">{guide.runes?.primary} + {guide.runes?.secondary}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-400 mb-1">CORE ITEMS</div>
+                      <div className="text-sm text-slate-300">{guide.itemBuild?.core?.join(' → ')}</div>
+                    </div>
                   </div>
                 </Card>
               </>)}
             </div>
             <div className="lg:col-span-2 space-y-4">
               {guide ? (<>
+                <Card title="Overview" icon="📖">
+                  <p className="text-slate-300">{guide.description}</p>
+                </Card>
+                <Card title="Power Spikes" icon="⚡">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {guide.powerSpikes?.map((spike, i) => (
+                      <div key={i} className="flex gap-3 p-3 bg-slate-700/30 rounded-lg">
+                        <span className="text-yellow-400 font-bold text-sm whitespace-nowrap min-w-[80px]">{spike.time}</span>
+                        <span className="text-sm text-slate-300">{spike.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
                 <Card title="Combos" icon="🎯">
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {guide.combos?.map((combo, i) => (
                       <div key={i} className="p-3 bg-slate-700/30 rounded-xl">
                         <div className="flex justify-between items-start mb-2">
                           <span className="font-bold text-purple-400">{combo.name}</span>
-                          <code className="text-xs bg-slate-800 px-2 py-1 rounded font-mono">{combo.keys}</code>
                         </div>
-                        <p className="text-sm text-slate-300">{combo.description}</p>
+                        <code className="text-xs bg-slate-800 px-2 py-1 rounded font-mono block mb-2 text-blue-300">{combo.keys}</code>
+                        <p className="text-sm text-slate-400">{combo.description}</p>
                       </div>
                     ))}
                   </div>
                 </Card>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card title="Lane Phase" icon="🛡️"><p className="text-sm text-slate-300">{guide.lanePhase}</p></Card>
-                  <Card title="Teamfighting" icon="⚔️"><p className="text-sm text-slate-300">{guide.teamfighting}</p></Card>
+                  <Card title="Lane Phase" icon="🛡️">
+                    <div className="space-y-3">
+                      {typeof guide.lanePhase === 'object' ? (<>
+                        <div>
+                          <div className="text-xs text-blue-400 font-bold mb-1">EARLY GAME</div>
+                          <p className="text-sm text-slate-300">{guide.lanePhase.early}</p>
+                        </div>
+                        <div>
+                          <div className="text-xs text-yellow-400 font-bold mb-1">MID GAME</div>
+                          <p className="text-sm text-slate-300">{guide.lanePhase.mid}</p>
+                        </div>
+                        {guide.lanePhase.tips && (
+                          <div>
+                            <div className="text-xs text-green-400 font-bold mb-1">TIPS</div>
+                            <div className="space-y-1">
+                              {guide.lanePhase.tips.slice(0, 3).map((tip, i) => (
+                                <div key={i} className="text-xs text-slate-400 flex gap-1"><span className="text-green-400">•</span>{tip}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>) : (
+                        <p className="text-sm text-slate-300">{guide.lanePhase}</p>
+                      )}
+                    </div>
+                  </Card>
+                  <Card title="Teamfighting" icon="⚔️">
+                    <p className="text-sm text-slate-300">{guide.teamfighting}</p>
+                    {guide.matchupTips && (
+                      <div className="mt-4 space-y-2 pt-4 border-t border-slate-700">
+                        <div className="text-xs text-slate-400 font-bold">MATCHUP TIPS</div>
+                        <div className="text-xs text-red-400">{guide.matchupTips.hard}</div>
+                        <div className="text-xs text-green-400">{guide.matchupTips.easy}</div>
+                      </div>
+                    )}
+                  </Card>
                 </div>
-                <Card title="Tips & Tricks" icon="💡">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {guide.tips?.map((tip, i) => (
-                      <div key={i} className="flex gap-2 text-sm p-2 bg-slate-700/30 rounded-lg"><span className="text-green-400">✓</span><span className="text-slate-300">{tip}</span></div>
-                    ))}
-                  </div>
-                </Card>
+                {guide.lanePhase?.tips && guide.lanePhase.tips.length > 3 && (
+                  <Card title="Additional Tips" icon="💡">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {guide.lanePhase.tips.slice(3).map((tip, i) => (
+                        <div key={i} className="flex gap-2 text-sm p-2 bg-slate-700/30 rounded-lg"><span className="text-green-400">✓</span><span className="text-slate-300">{tip}</span></div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
               </>) : (
                 <Card className="py-20 text-center">
                   <span className="text-6xl block mb-4">📚</span>
-                  <p className="text-slate-400">Select a champion to view their guide</p>
-                  <p className="text-slate-500 text-sm mt-2">Guides available for: Aatrox, Jinx, Lee Sin</p>
+                  <p className="text-slate-400 text-lg">Select a champion to view their in-depth guide</p>
+                  <p className="text-purple-400 font-bold mt-4">📖 {guideStats.totalGuides || 172} Champion Guides Available!</p>
+                  <p className="text-slate-500 text-sm mt-2">Detailed guides with combos, power spikes, builds, and strategies</p>
                 </Card>
               )}
             </div>
