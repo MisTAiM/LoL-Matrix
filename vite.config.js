@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/', // For GitHub Pages - change to '/' for custom domain
+  base: '/lol-matrix/', // For GitHub Pages - change to '/' for custom domain
   resolve: {
     alias: {
       '@': '/src',

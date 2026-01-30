@@ -5,6 +5,7 @@ import itemsData from './data/items_full.json';
 import guidesData from './data/guides.json';
 import runesData from './data/runes.json';
 import { MathEngine, DataDragon } from './utils/api';
+import { generateMatchup, getAllMatchups, championTraits, getCounters, getStrongAgainst } from './data/matchupEngine';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -13,7 +14,6 @@ const ITEM_ICON_BASE = itemsData.meta.iconBase;
 const CHAMPIONS = championsData.champions;
 const ITEMS = itemsData.items;
 const GUIDES = guidesData.championGuides;
-const MATCHUPS = guidesData.matchups;
 const RUNES = runesData.trees;
 const RUNE_PAGES = runesData.recommendedPages;
 const JUNGLE_PATHS = guidesData.junglePaths;
@@ -134,7 +134,6 @@ export default function App() {
   }), [calc, level]);
 
   const guide = selected ? GUIDES[selected.id] : null;
-  const matchupData = selected?.id ? MATCHUPS[selected.id] : null;
 
   const counterPicks = useMemo(() => {
     if (!enemies.some(Boolean)) return null;
@@ -342,7 +341,48 @@ export default function App() {
                   <option value="">Choose your champion...</option>
                   {Object.values(CHAMPIONS).sort((a, b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+                {selected && (
+                  <div className="mt-4 flex items-center gap-3 p-3 bg-slate-700/30 rounded-xl">
+                    <ChampIcon id={selected.id} size={48} />
+                    <div>
+                      <b>{selected.name}</b>
+                      <div className="text-sm text-slate-400">{selected.role} • {championTraits[selected.id]?.playstyle || selected.class?.join(', ')}</div>
+                    </div>
+                  </div>
+                )}
               </Card>
+              {selected && championTraits[selected.id] && (
+                <>
+                  <Card title="Counters You" icon="⚠️">
+                    <div className="space-y-2">
+                      {(getCounters(selected.id) || []).map(c => (
+                        <div key={c} className="flex items-center gap-2 p-2 bg-red-500/10 rounded-lg">
+                          <ChampIcon id={c} size={32} />
+                          <span className="text-sm">{c}</span>
+                          <span className="text-xs text-red-400 ml-auto">Hard</span>
+                        </div>
+                      ))}
+                      {(!getCounters(selected.id) || getCounters(selected.id).length === 0) && (
+                        <p className="text-sm text-slate-400">No specific counters listed</p>
+                      )}
+                    </div>
+                  </Card>
+                  <Card title="You Counter" icon="✅">
+                    <div className="space-y-2">
+                      {(getStrongAgainst(selected.id) || []).map(c => (
+                        <div key={c} className="flex items-center gap-2 p-2 bg-green-500/10 rounded-lg">
+                          <ChampIcon id={c} size={32} />
+                          <span className="text-sm">{c}</span>
+                          <span className="text-xs text-green-400 ml-auto">Easy</span>
+                        </div>
+                      ))}
+                      {(!getStrongAgainst(selected.id) || getStrongAgainst(selected.id).length === 0) && (
+                        <p className="text-sm text-slate-400">No specific advantages listed</p>
+                      )}
+                    </div>
+                  </Card>
+                </>
+              )}
               <Card title="Wave Management" icon="🌊">
                 {Object.values(WAVE_MGMT).map((wave, i) => (
                   <div key={i} className="mb-3 p-3 bg-slate-700/30 rounded-lg">
@@ -354,36 +394,60 @@ export default function App() {
               </Card>
             </div>
             <div className="lg:col-span-2 space-y-4">
-              {matchupData ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(matchupData).map(([enemy, data]) => (
-                    <Card key={enemy} className="relative">
-                      <div className="flex items-center gap-3 mb-3">
-                        <ChampIcon id={enemy} size={48} />
-                        <div>
-                          <div className="font-bold">{selected.name} vs {enemy}</div>
-                          <div className="flex gap-2 mt-1">
-                            <span className={`text-xs px-2 py-0.5 rounded ${data.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' : data.difficulty === 'Hard' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{data.difficulty}</span>
-                            <span className="text-xs text-slate-400">{data.winRate}% WR</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {data.tips?.slice(0, 3).map((tip, i) => (
-                          <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-purple-400">•</span>{tip}</div>
-                        ))}
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-slate-700">
-                        <p className="text-xs text-slate-400"><b className="text-white">Key:</b> {data.keyTiming}</p>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+              {selected && championTraits[selected.id] ? (
+                <>
+                  <Card title={`All Matchups for ${selected.name}`} icon={`⚔️ ${Object.keys(championTraits).length - 1} matchups`}>
+                    <div className="mb-4">
+                      <input type="text" placeholder="Search enemy champion..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-slate-700 rounded-lg px-3 py-2 border border-slate-600 text-sm" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-2">
+                      {Object.keys(championTraits)
+                        .filter(enemy => enemy !== selected.id)
+                        .filter(enemy => enemy.toLowerCase().includes(search.toLowerCase()))
+                        .sort((a, b) => {
+                          const mA = generateMatchup(selected.id, a);
+                          const mB = generateMatchup(selected.id, b);
+                          return mB.winRate - mA.winRate;
+                        })
+                        .map(enemy => {
+                          const matchup = generateMatchup(selected.id, enemy);
+                          const diffColor = matchup.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' : 
+                                           matchup.difficulty === 'Favorable' ? 'bg-blue-500/20 text-blue-400' :
+                                           matchup.difficulty === 'Skill' ? 'bg-yellow-500/20 text-yellow-400' :
+                                           matchup.difficulty === 'Unfavorable' ? 'bg-orange-500/20 text-orange-400' :
+                                           'bg-red-500/20 text-red-400';
+                          return (
+                            <div key={enemy} className="p-3 bg-slate-700/30 rounded-xl border border-slate-600/50 hover:border-purple-500/50 transition-all">
+                              <div className="flex items-center gap-2 mb-2">
+                                <ChampIcon id={enemy} size={36} />
+                                <div className="flex-1">
+                                  <div className="font-bold text-sm">{enemy}</div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-xs px-2 py-0.5 rounded ${diffColor}`}>{matchup.difficulty}</span>
+                                    <span className={`text-xs ${matchup.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>{matchup.winRate}%</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                {matchup.tips.slice(0, 2).map((tip, i) => (
+                                  <div key={i} className="text-xs text-slate-400 flex gap-1"><span className="text-purple-400">•</span>{tip}</div>
+                                ))}
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-slate-600/50">
+                                <p className="text-xs text-slate-500"><b className="text-slate-400">Key:</b> {matchup.keyTiming}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </Card>
+                </>
               ) : (
                 <Card className="py-20 text-center">
                   <span className="text-6xl block mb-4">⚔️</span>
-                  <p className="text-slate-400">Select a champion to view matchups</p>
-                  <p className="text-slate-500 text-sm mt-2">Matchup data for: Aatrox, Jinx</p>
+                  <p className="text-slate-400 text-lg">Select a champion to view all matchups</p>
+                  <p className="text-slate-500 text-sm mt-2">Dynamic matchup data for {Object.keys(championTraits).length} champions</p>
+                  <p className="text-purple-400 text-xs mt-4">{(Object.keys(championTraits).length * (Object.keys(championTraits).length - 1)).toLocaleString()} total matchups available!</p>
                 </Card>
               )}
             </div>
