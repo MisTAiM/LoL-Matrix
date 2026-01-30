@@ -1,0 +1,273 @@
+{
+  "meta": {
+    "version": "1.0",
+    "lastUpdated": "2026-01-29"
+  },
+  "championGuides": {
+    "Aatrox": {
+      "difficulty": "Medium",
+      "role": "Top",
+      "playstyle": "Drain Tank / Teamfight Juggernaut",
+      "strengths": ["Strong sustain in fights", "Great teamfight ultimate", "Lane bully vs melees", "Good waveclear"],
+      "weaknesses": ["Weak to anti-heal", "Skillshot dependent", "Kitable", "Falls off if behind"],
+      "combos": [
+        {"name": "Basic Trade", "keys": "Q1 → E → Q2 → Q3", "description": "Use E to reposition Q sweetspots. Hit all 3 Qs for maximum damage."},
+        {"name": "All-in", "keys": "R → Q1 → E → Q2 → W → Q3 → AA", "description": "Pop R first for bonus AD. Use W between Q2 and Q3 to guarantee Q3 hit."},
+        {"name": "Flash Combo", "keys": "Q3 → Flash", "description": "Flash during Q3 animation to surprise enemies with knockup."}
+      ],
+      "powerSpikes": [
+        {"time": "Level 2", "description": "Q + E allows aggressive trades"},
+        {"time": "Level 6", "description": "R makes you nearly unkillable in all-ins"},
+        {"time": "1 Item", "description": "Eclipse/Goredrinker spike is massive"},
+        {"time": "Level 13", "description": "Q maxed - huge damage increase"}
+      ],
+      "tips": [
+        "Always try to hit Q sweetspots (edges) for bonus damage + knockup",
+        "Use E to extend Q range or reposition mid-Q",
+        "W is great for setting up ganks - pull enemies toward your jungler",
+        "R resets on takedowns - use it to dive backline in teamfights",
+        "Build anti-heal counter: Spirit Visage for +healing, or just outplay"
+      ],
+      "lanePhase": "Look to trade with Q1-E-Q2 when enemy goes for CS. Save Q3 for disengage or all-in. Your level 2 and 6 are very strong - look for kills.",
+      "teamfighting": "Flank or dive backline with R active. Your job is to disrupt and drain tank. Hit as many people with Q sweetspots as possible.",
+      "skillOrder": "Q → E → W (Q max, then E, W last)",
+      "summonerSpells": ["Flash", "Teleport"],
+      "coreItems": ["Eclipse", "Black Cleaver", "Death's Dance"],
+      "situationalItems": ["Maw of Malmortius", "Serylda's Grudge", "Guardian Angel"]
+    },
+    "Jinx": {
+      "difficulty": "Medium",
+      "role": "ADC",
+      "playstyle": "Hypercarry / Late Game Monster",
+      "strengths": ["Insane late game damage", "Global ultimate", "Passive resets in fights", "Long range with rockets"],
+      "weaknesses": ["No mobility", "Weak early game", "Relies on team peel", "Mana hungry"],
+      "combos": [
+        {"name": "Poke", "keys": "Q (Rockets) → AA → W", "description": "Use rockets for safe poke, W to slow for more autos."},
+        {"name": "All-in", "keys": "E → W → Q (Minigun) → AA spam", "description": "Drop traps, slow with W, then melt with minigun attack speed."},
+        {"name": "Snipe", "keys": "R (predict movement)", "description": "Ult travels faster the further it goes. Lead your target."}
+      ],
+      "powerSpikes": [
+        {"time": "Level 2", "description": "W + E gives kill threat with aggressive support"},
+        {"time": "1 Item (IE)", "description": "Rocket crits hurt A LOT"},
+        {"time": "2 Items", "description": "IE + Zeal item = you carry teamfights"},
+        {"time": "3 Items", "description": "You're now the strongest champ in the game"}
+      ],
+      "tips": [
+        "Use minigun for DPS, rockets for poke/waveclear/teamfights",
+        "Place E (traps) in choke points or under CC'd enemies",
+        "Your passive lets you chase down kills - get one reset and go crazy",
+        "R does more damage at longer range - use it to snipe low HP enemies",
+        "In teamfights, stay back and use rockets. Switch to minigun when safe"
+      ],
+      "lanePhase": "Farm safely with rockets, poke when possible. Your level 2 is decent with aggressive support. Focus on CS - you outscale almost everyone.",
+      "teamfighting": "Stay max range with rockets. Wait for cooldowns to be used before stepping up. Once you get a kill, passive activates - chase and clean up.",
+      "skillOrder": "Q → W → E (Q max, then W)",
+      "summonerSpells": ["Flash", "Heal"],
+      "coreItems": ["Infinity Edge", "Rapid Firecannon", "Lord Dominik's Regards"],
+      "situationalItems": ["Bloodthirster", "Mortal Reminder", "Guardian Angel"]
+    },
+    "LeeSin": {
+      "difficulty": "Hard",
+      "role": "Jungle",
+      "playstyle": "Early Game Aggressor / Playmaker",
+      "strengths": ["Strongest early game jungler", "High mobility", "Insec potential", "Versatile build paths"],
+      "weaknesses": ["Falls off late game", "High skill ceiling", "Energy management", "Needs to snowball"],
+      "combos": [
+        {"name": "Basic Gank", "keys": "Q → Q → E → AA → AA", "description": "Land Q, follow up, slow with E, proc passive twice."},
+        {"name": "Insec (Basic)", "keys": "Q → Q → Ward → W → R", "description": "Q to target, ward behind them, W to ward, R them into team."},
+        {"name": "Insec (Flash)", "keys": "Q → Q → R → Flash", "description": "Q in, R immediately, Flash behind to redirect kick."},
+        {"name": "Chinese Insec", "keys": "Q → Ward → W → R → Q", "description": "Faster insec - W to ward first, then Q while kicking."}
+      ],
+      "powerSpikes": [
+        {"time": "Level 3", "description": "Full combo available - strong ganks"},
+        {"time": "Level 6", "description": "R enables insec plays and executes"},
+        {"time": "1 Item", "description": "Eclipse/Goredrinker makes you a beast"},
+        {"time": "Levels 3-11", "description": "Your prime time - make plays happen"}
+      ],
+      "tips": [
+        "Always weave 2 autos between abilities for passive energy restore + damage",
+        "Ward hop (W to ward) is essential - practice it",
+        "Q reveals targets - use it to check bushes",
+        "E reveals invisible units (Akali shroud, Shaco, etc)",
+        "You MUST get ahead early - if even at 20 min, you're behind"
+      ],
+      "lanePhase": "N/A",
+      "junglePath": "Red → Krugs → Raptors → Gank or Blue → Gromp → Wolves → Gank. Lee wants to gank at level 3.",
+      "teamfighting": "Look for insec on priority target. If behind, peel for carries with R.",
+      "skillOrder": "Q → E → W (Q max always)",
+      "summonerSpells": ["Flash", "Smite"],
+      "coreItems": ["Eclipse", "Black Cleaver", "Death's Dance"],
+      "situationalItems": ["Maw of Malmortius", "Guardian Angel", "Edge of Night"]
+    }
+  },
+  "matchups": {
+    "Aatrox": {
+      "Fiora": {
+        "difficulty": "Hard",
+        "winRate": 45,
+        "tips": [
+          "She parries your Q3 - bait it out or use Q1/Q2 only",
+          "Don't fight her in long trades - she wins with vitals",
+          "Bramble Vest is essential",
+          "You outscale in teamfights - don't need to win lane"
+        ],
+        "earlyGame": "Respect her level 1. Trade with Q1-E-Q2 but don't commit to Q3.",
+        "keyTiming": "Bait her W before using Q3 or R"
+      },
+      "Malphite": {
+        "difficulty": "Easy",
+        "winRate": 58,
+        "tips": [
+          "You sustain through his poke",
+          "He can't stop your healing",
+          "All-in him level 6",
+          "Be careful of his jungler - he sets up ganks well"
+        ],
+        "earlyGame": "Free lane. Sustain through his Q poke and look for kills.",
+        "keyTiming": "Your level 6 all-in is much stronger than his"
+      },
+      "Irelia": {
+        "difficulty": "Skill",
+        "winRate": 50,
+        "tips": [
+          "Don't fight in your minion wave - she stacks passive",
+          "If she misses E, you win the trade",
+          "Your Q sweetspots interrupt her Q dashes",
+          "Respect her 5-stack passive"
+        ],
+        "earlyGame": "Don't fight level 1-2. At 3+, fight outside your wave.",
+        "keyTiming": "Fight when her passive is down"
+      }
+    },
+    "Jinx": {
+      "Draven": {
+        "difficulty": "Hard",
+        "winRate": 44,
+        "tips": [
+          "He wins every early trade - don't fight",
+          "Farm with rockets from max range",
+          "If he drops axes, you can trade back",
+          "Outscale him - just survive to 2 items"
+        ],
+        "earlyGame": "Give up CS if needed. Don't die. You outscale hard.",
+        "keyTiming": "You spike harder at 2-3 items"
+      },
+      "Caitlyn": {
+        "difficulty": "Medium",
+        "winRate": 48,
+        "tips": [
+          "She outranges you early",
+          "Don't step on traps",
+          "You outscale her significantly",
+          "All-in at level 6 with aggressive support can work"
+        ],
+        "earlyGame": "Farm under tower if needed. Avoid trap zones.",
+        "keyTiming": "2 items you start winning fights"
+      }
+    }
+  },
+  "junglePaths": {
+    "fullClear": {
+      "name": "Full Clear (Blue Side)",
+      "route": ["Red", "Krugs", "Raptors", "Wolves", "Blue", "Gromp", "Scuttle"],
+      "time": "3:15-3:20",
+      "bestFor": ["Scaling junglers", "Farm-heavy champs"],
+      "champions": ["Karthus", "Diana", "Shyvana", "Viego", "Lillia"]
+    },
+    "threeCampGank": {
+      "name": "3-Camp Gank",
+      "route": ["Red", "Blue", "Gromp", "Gank Top/Mid"],
+      "time": "2:50 gank",
+      "bestFor": ["Early game junglers", "Strong level 3"],
+      "champions": ["Lee Sin", "Elise", "Jarvan IV", "Xin Zhao", "Rek'Sai"]
+    },
+    "raptorStart": {
+      "name": "Raptor Start (Red Side)",
+      "route": ["Raptors", "Red", "Krugs", "Gank Bot or Full Clear"],
+      "time": "Flexible",
+      "bestFor": ["AoE clear champs", "Bot lane focused"],
+      "champions": ["Kayn", "Fiddle", "Amumu", "Hecarim"]
+    }
+  },
+  "waveManagement": {
+    "freeze": {
+      "name": "Freezing",
+      "description": "Keep the wave just outside your tower range",
+      "howTo": "Only last hit. Let 3-4 enemy minions survive each wave.",
+      "when": "When ahead and want to deny CS, or when behind and need safety",
+      "tips": ["Tank minion aggro briefly to keep wave in place", "Trim wave if it gets too big"]
+    },
+    "slowPush": {
+      "name": "Slow Push",
+      "description": "Build a large wave that crashes into enemy tower",
+      "howTo": "Kill caster minions only for 2-3 waves",
+      "when": "Before roaming, before objectives, before backing",
+      "tips": ["3-wave crash is ideal for dives", "Creates 30-40 second window to roam"]
+    },
+    "fastPush": {
+      "name": "Fast Push",
+      "description": "Quickly clear wave to crash into tower",
+      "howTo": "Use all abilities to kill wave ASAP",
+      "when": "After a kill, before objectives, to reset wave state",
+      "tips": ["Denies CS under tower", "Creates tempo advantage"]
+    }
+  },
+  "improvementChecklist": {
+    "csing": [
+      "Am I hitting 7+ CS/min?",
+      "Did I miss CS due to bad trading?",
+      "Did I lose CS to tower when I could have thinned wave?",
+      "Did I recognize free farm windows (enemy backed/roamed)?"
+    ],
+    "trading": [
+      "Did I trade when enemy used cooldowns?",
+      "Did I respect enemy power spikes?",
+      "Did I track enemy summoner spells?",
+      "Did I abuse range/ability advantage?"
+    ],
+    "vision": [
+      "Did I buy control wards?",
+      "Did I ward before objectives spawn?",
+      "Did I die to ganks I should have seen coming?",
+      "Did I clear enemy vision?"
+    ],
+    "macro": [
+      "Did I recognize win conditions?",
+      "Did I ping/communicate objectives?",
+      "Did I rotate to help teammates?",
+      "Did I push side waves before teamfights?"
+    ],
+    "teamfighting": [
+      "Did I position correctly for my role?",
+      "Did I focus the right target?",
+      "Did I use abilities at the right time?",
+      "Did I track key enemy cooldowns (Flash, Zhonya, etc)?"
+    ]
+  },
+  "practiceDrills": {
+    "csing": {
+      "name": "CS Practice",
+      "exercises": [
+        {"name": "No Abilities CS", "goal": "Get 100 CS by 12:00 using only auto attacks", "difficulty": "Easy"},
+        {"name": "Perfect CS", "goal": "Miss 0 CS in first 5 minutes", "difficulty": "Medium"},
+        {"name": "Harass + CS", "goal": "80+ CS by 10:00 while trading with bot", "difficulty": "Hard"}
+      ]
+    },
+    "combos": {
+      "name": "Combo Practice",
+      "exercises": [
+        {"name": "Basic Combo", "goal": "Execute champion's basic combo 10x in a row", "difficulty": "Easy"},
+        {"name": "Flash Combo", "goal": "Land flash combo on moving target", "difficulty": "Medium"},
+        {"name": "Full Rotation", "goal": "100-0 a dummy in under 2 seconds", "difficulty": "Hard"}
+      ]
+    },
+    "mechanics": {
+      "name": "Mechanics Drills",
+      "exercises": [
+        {"name": "Kiting", "goal": "Kite dummy while moving, never stop moving", "difficulty": "Easy"},
+        {"name": "Orb Walking", "goal": "Attack-move with perfect spacing", "difficulty": "Medium"},
+        {"name": "Animation Cancel", "goal": "Cancel ability animations for faster combos", "difficulty": "Hard"}
+      ]
+    }
+  }
+}

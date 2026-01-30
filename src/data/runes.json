@@ -1,0 +1,238 @@
+{
+  "meta": {
+    "version": "16.2.1",
+    "lastUpdated": "2026-01-29"
+  },
+  "trees": {
+    "Precision": {
+      "id": 8000,
+      "name": "Precision",
+      "description": "Improved attacks and sustained damage",
+      "color": "#C8AA6E",
+      "icon": "perk-images/Styles/7201_Precision.png",
+      "keystones": [
+        {"id": 8005, "name": "Press the Attack", "description": "Hitting enemy 3 times deals bonus damage and exposes them", "bestFor": ["ADCs", "On-hit builds", "Short trades"]},
+        {"id": 8008, "name": "Lethal Tempo", "description": "Gain attack speed when attacking champions, stacks up", "bestFor": ["Hypercarries", "Melee fighters", "Extended fights"]},
+        {"id": 8021, "name": "Fleet Footwork", "description": "Attacks energize, giving heal and movement speed", "bestFor": ["Sustain lanes", "Kiting", "Weak early game"]},
+        {"id": 8010, "name": "Conqueror", "description": "Stack AD/AP in combat, fully stacked heals you", "bestFor": ["Bruisers", "Extended fights", "Drain tanks"]}
+      ],
+      "slots": [
+        [
+          {"id": 9101, "name": "Overheal", "description": "Excess healing becomes a shield"},
+          {"id": 9111, "name": "Triumph", "description": "Takedowns restore HP and grant gold"},
+          {"id": 8009, "name": "Presence of Mind", "description": "Takedowns restore mana/energy"}
+        ],
+        [
+          {"id": 9104, "name": "Legend: Alacrity", "description": "Gain attack speed per stack"},
+          {"id": 9105, "name": "Legend: Tenacity", "description": "Gain tenacity per stack"},
+          {"id": 9103, "name": "Legend: Bloodline", "description": "Gain lifesteal per stack"}
+        ],
+        [
+          {"id": 8014, "name": "Coup de Grace", "description": "Deal more damage to low HP targets"},
+          {"id": 8017, "name": "Cut Down", "description": "Deal more damage to higher max HP targets"},
+          {"id": 8299, "name": "Last Stand", "description": "Deal more damage when low HP"}
+        ]
+      ]
+    },
+    "Domination": {
+      "id": 8100,
+      "name": "Domination",
+      "description": "Burst damage and target access",
+      "color": "#D44242",
+      "icon": "perk-images/Styles/7200_Domination.png",
+      "keystones": [
+        {"id": 8112, "name": "Electrocute", "description": "3 attacks/abilities in 3s deal bonus damage", "bestFor": ["Assassins", "Burst mages", "Short trades"]},
+        {"id": 8128, "name": "Dark Harvest", "description": "Damage low HP enemies, stacks infinitely", "bestFor": ["Scaling assassins", "Reset champions", "ARAM"]},
+        {"id": 9923, "name": "Hail of Blades", "description": "First 3 attacks are very fast", "bestFor": ["On-hit burst", "Early trades", "Specific combos"]},
+        {"id": 8124, "name": "Predator", "description": "Boots active: dash and deal damage", "bestFor": ["Roaming", "Junglers", "Engage supports"]}
+      ],
+      "slots": [
+        [
+          {"id": 8126, "name": "Cheap Shot", "description": "Bonus damage to impaired enemies"},
+          {"id": 8139, "name": "Taste of Blood", "description": "Heal when damaging champions"},
+          {"id": 8143, "name": "Sudden Impact", "description": "Lethality/magic pen after dash/blink"}
+        ],
+        [
+          {"id": 8136, "name": "Zombie Ward", "description": "Takedown wards become allied wards"},
+          {"id": 8120, "name": "Ghost Poro", "description": "Wards leave behind a poro when expiring"},
+          {"id": 8138, "name": "Eyeball Collection", "description": "Gain AD/AP per champion takedown"}
+        ],
+        [
+          {"id": 8135, "name": "Treasure Hunter", "description": "Gain gold on unique takedowns"},
+          {"id": 8134, "name": "Ingenious Hunter", "description": "Item CDR per unique takedown"},
+          {"id": 8105, "name": "Relentless Hunter", "description": "Out of combat MS per unique takedown"},
+          {"id": 8106, "name": "Ultimate Hunter", "description": "Ultimate CDR per unique takedown"}
+        ]
+      ]
+    },
+    "Sorcery": {
+      "id": 8200,
+      "name": "Sorcery",
+      "description": "Empowered abilities and resource manipulation",
+      "color": "#6B8BE8",
+      "icon": "perk-images/Styles/7202_Sorcery.png",
+      "keystones": [
+        {"id": 8214, "name": "Summon Aery", "description": "Aery attacks enemies or shields allies", "bestFor": ["Poke mages", "Enchanters", "DoT champions"]},
+        {"id": 8229, "name": "Arcane Comet", "description": "Abilities hurl a comet at enemies", "bestFor": ["Poke mages", "CC champions", "Artillery"]},
+        {"id": 8230, "name": "Phase Rush", "description": "3 attacks/abilities grant movement speed", "bestFor": ["Kiting", "Melee mages", "Escape"]}
+      ],
+      "slots": [
+        [
+          {"id": 8224, "name": "Nullifying Orb", "description": "Shield when taking magic damage while low"},
+          {"id": 8226, "name": "Manaflow Band", "description": "Abilities restore mana, increases max mana"},
+          {"id": 8275, "name": "Nimbus Cloak", "description": "Summoner spells grant movement speed"}
+        ],
+        [
+          {"id": 8210, "name": "Transcendence", "description": "CDR at levels, ability kills reduce CDs"},
+          {"id": 8234, "name": "Celerity", "description": "Bonus movement speed amplified"},
+          {"id": 8233, "name": "Absolute Focus", "description": "Bonus AD/AP while above 70% HP"}
+        ],
+        [
+          {"id": 8237, "name": "Scorch", "description": "Abilities burn enemies"},
+          {"id": 8232, "name": "Waterwalking", "description": "Bonus MS and AD/AP in river"},
+          {"id": 8236, "name": "Gathering Storm", "description": "Gain AD/AP over time"}
+        ]
+      ]
+    },
+    "Resolve": {
+      "id": 8400,
+      "name": "Resolve",
+      "description": "Durability and crowd control",
+      "color": "#A1D586",
+      "icon": "perk-images/Styles/7204_Resolve.png",
+      "keystones": [
+        {"id": 8437, "name": "Grasp of the Undying", "description": "In combat, attacks deal bonus damage and heal", "bestFor": ["Tanks", "Bruisers", "Lane sustain"]},
+        {"id": 8439, "name": "Aftershock", "description": "Immobilizing enemies grants resists, then explodes", "bestFor": ["Engage tanks", "CC supports", "Divers"]},
+        {"id": 8465, "name": "Guardian", "description": "Shield nearby ally when they take damage", "bestFor": ["Enchanters", "Protective supports", "Duo lanes"]}
+      ],
+      "slots": [
+        [
+          {"id": 8446, "name": "Demolish", "description": "Charge up to deal bonus tower damage"},
+          {"id": 8463, "name": "Font of Life", "description": "CC marks enemies, allies heal attacking them"},
+          {"id": 8401, "name": "Shield Bash", "description": "Shields empower your next attack"}
+        ],
+        [
+          {"id": 8429, "name": "Conditioning", "description": "Gain armor/MR at 12 minutes"},
+          {"id": 8444, "name": "Second Wind", "description": "Regen HP after taking damage"},
+          {"id": 8473, "name": "Bone Plating", "description": "Block damage from first 3 attacks"}
+        ],
+        [
+          {"id": 8451, "name": "Overgrowth", "description": "Gain max HP from nearby minion deaths"},
+          {"id": 8453, "name": "Revitalize", "description": "Heals and shields are stronger"},
+          {"id": 8242, "name": "Unflinching", "description": "Tenacity and slow resist when low HP"}
+        ]
+      ]
+    },
+    "Inspiration": {
+      "id": 8300,
+      "name": "Inspiration",
+      "description": "Creative tools and rule bending",
+      "color": "#49AAB8",
+      "icon": "perk-images/Styles/7203_Inspiration.png",
+      "keystones": [
+        {"id": 8351, "name": "Glacial Augment", "description": "Immobilizing creates a zone that slows", "bestFor": ["CC supports", "Engagers", "Utility"]},
+        {"id": 8360, "name": "Unsealed Spellbook", "description": "Swap summoner spells during game", "bestFor": ["Flexibility", "High skill ceiling", "Support"]},
+        {"id": 8369, "name": "First Strike", "description": "First hit deals bonus damage, gain gold", "bestFor": ["Poke", "Gold generation", "Assassins"]}
+      ],
+      "slots": [
+        [
+          {"id": 8306, "name": "Hextech Flashtraption", "description": "Channel to flash while Flash is on CD"},
+          {"id": 8304, "name": "Magical Footwear", "description": "Free boots at 12 min (+10 MS)"},
+          {"id": 8313, "name": "Cash Back", "description": "Item purchases partially refund"}
+        ],
+        [
+          {"id": 8321, "name": "Future's Market", "description": "Buy items while in debt"},
+          {"id": 8316, "name": "Minion Dematerializer", "description": "Kill minions instantly, bonus damage"},
+          {"id": 8345, "name": "Biscuit Delivery", "description": "Free biscuits that restore HP/mana"}
+        ],
+        [
+          {"id": 8347, "name": "Cosmic Insight", "description": "Summoner spell and item CDR"},
+          {"id": 8410, "name": "Approach Velocity", "description": "Move faster toward impaired enemies"},
+          {"id": 8352, "name": "Time Warp Tonic", "description": "Potions restore instantly and give MS"}
+        ]
+      ]
+    }
+  },
+  "recommendedPages": {
+    "ADC_Standard": {
+      "name": "ADC - Standard",
+      "primary": "Precision",
+      "keystone": "Lethal Tempo",
+      "primaryRunes": ["Triumph", "Legend: Alacrity", "Coup de Grace"],
+      "secondary": "Domination",
+      "secondaryRunes": ["Taste of Blood", "Treasure Hunter"],
+      "statShards": ["Attack Speed", "Adaptive Force", "Health"],
+      "bestFor": ["Jinx", "Aphelios", "Kog'Maw", "Twitch"]
+    },
+    "ADC_Sustain": {
+      "name": "ADC - Sustain Lane",
+      "primary": "Precision",
+      "keystone": "Fleet Footwork",
+      "primaryRunes": ["Overheal", "Legend: Bloodline", "Coup de Grace"],
+      "secondary": "Sorcery",
+      "secondaryRunes": ["Nimbus Cloak", "Gathering Storm"],
+      "statShards": ["Attack Speed", "Adaptive Force", "Health"],
+      "bestFor": ["Vayne", "Ezreal", "Caitlyn", "Ashe"]
+    },
+    "Assassin_Burst": {
+      "name": "Assassin - Burst",
+      "primary": "Domination",
+      "keystone": "Electrocute",
+      "primaryRunes": ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"],
+      "secondary": "Sorcery",
+      "secondaryRunes": ["Absolute Focus", "Gathering Storm"],
+      "statShards": ["Adaptive Force", "Adaptive Force", "Health"],
+      "bestFor": ["Zed", "Talon", "Qiyana", "Kha'Zix"]
+    },
+    "Mage_Poke": {
+      "name": "Mage - Poke",
+      "primary": "Sorcery",
+      "keystone": "Arcane Comet",
+      "primaryRunes": ["Manaflow Band", "Transcendence", "Scorch"],
+      "secondary": "Inspiration",
+      "secondaryRunes": ["Biscuit Delivery", "Cosmic Insight"],
+      "statShards": ["Adaptive Force", "Adaptive Force", "Health"],
+      "bestFor": ["Xerath", "Lux", "Vel'Koz", "Ziggs"]
+    },
+    "Bruiser_Conqueror": {
+      "name": "Bruiser - Conqueror",
+      "primary": "Precision",
+      "keystone": "Conqueror",
+      "primaryRunes": ["Triumph", "Legend: Tenacity", "Last Stand"],
+      "secondary": "Resolve",
+      "secondaryRunes": ["Second Wind", "Unflinching"],
+      "statShards": ["Attack Speed", "Adaptive Force", "Health"],
+      "bestFor": ["Aatrox", "Darius", "Riven", "Renekton"]
+    },
+    "Tank_Grasp": {
+      "name": "Tank - Grasp",
+      "primary": "Resolve",
+      "keystone": "Grasp of the Undying",
+      "primaryRunes": ["Demolish", "Conditioning", "Overgrowth"],
+      "secondary": "Inspiration",
+      "secondaryRunes": ["Biscuit Delivery", "Time Warp Tonic"],
+      "statShards": ["Ability Haste", "Armor", "Health"],
+      "bestFor": ["Ornn", "Sion", "Malphite", "Cho'Gath"]
+    },
+    "Support_Engage": {
+      "name": "Support - Engage",
+      "primary": "Resolve",
+      "keystone": "Aftershock",
+      "primaryRunes": ["Font of Life", "Bone Plating", "Unflinching"],
+      "secondary": "Domination",
+      "secondaryRunes": ["Cheap Shot", "Relentless Hunter"],
+      "statShards": ["Ability Haste", "Armor", "Health"],
+      "bestFor": ["Leona", "Nautilus", "Alistar", "Rell"]
+    },
+    "Support_Enchanter": {
+      "name": "Support - Enchanter",
+      "primary": "Sorcery",
+      "keystone": "Summon Aery",
+      "primaryRunes": ["Manaflow Band", "Transcendence", "Gathering Storm"],
+      "secondary": "Resolve",
+      "secondaryRunes": ["Revitalize", "Conditioning"],
+      "statShards": ["Ability Haste", "Adaptive Force", "Health"],
+      "bestFor": ["Lulu", "Janna", "Nami", "Soraka"]
+    }
+  }
+}
