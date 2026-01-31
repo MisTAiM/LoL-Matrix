@@ -174,7 +174,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-xl font-black shadow-lg shadow-purple-500/30">⚡</div>
+              <img src="/logo.png" alt="LoL-Matrix" className="w-11 h-11 rounded-xl shadow-lg shadow-blue-500/30 object-contain" />
               <div>
                 <h1 className="text-xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">LoL-Matrix Pro</h1>
                 <p className="text-[10px] text-slate-500">World-Class Coaching Platform • v{VERSION}</p>
@@ -1493,7 +1493,7 @@ export default function App() {
                         </div>
                       )}
                       {review.questions && (
-                        <div>
+                        <div className="mb-3">
                           <div className="text-xs text-green-400 font-bold mb-1">Questions to Ask:</div>
                           <div className="space-y-1">
                             {review.questions.map((q, i) => (
@@ -1502,15 +1502,25 @@ export default function App() {
                           </div>
                         </div>
                       )}
-                      {review.sections && (
+                      {/* Handle sections object (deepReview) */}
+                      {review.sections && typeof review.sections === 'object' && !Array.isArray(review.sections) && (
                         <div className="space-y-2">
                           {Object.entries(review.sections).map(([sKey, section]) => (
                             <div key={sKey} className="p-2 bg-slate-700/30 rounded">
                               <div className="text-xs text-yellow-400 font-bold">{section.name}</div>
                               <div className="text-xs text-slate-400">
-                                {section.checkpoints.length} checkpoints
+                                {section.checkpoints?.length || 0} checkpoints
                               </div>
                             </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Handle sections array (coachingReview) */}
+                      {review.sections && Array.isArray(review.sections) && (
+                        <div className="space-y-1">
+                          <div className="text-xs text-yellow-400 font-bold mb-1">Analysis Areas:</div>
+                          {review.sections.map((s, i) => (
+                            <div key={i} className="text-xs text-slate-300">• {s}</div>
                           ))}
                         </div>
                       )}
@@ -1521,11 +1531,11 @@ export default function App() {
                 {/* Deep Review Checkpoints */}
                 <Card title="Deep Review Checkpoints" icon="⏱️">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(vodReviewSystem.deepReview.sections).map(([key, section]) => (
+                    {vodReviewSystem.deepReview?.sections && Object.entries(vodReviewSystem.deepReview.sections).map(([key, section]) => (
                       <div key={key} className="p-4 bg-slate-700/30 rounded-xl">
                         <div className="font-bold text-blue-400 mb-3">{section.name}</div>
                         <div className="space-y-2">
-                          {section.checkpoints.map((cp, i) => (
+                          {section.checkpoints?.map((cp, i) => (
                             <div key={i} className="flex gap-2 text-xs p-2 bg-slate-700/50 rounded">
                               <span className="text-yellow-400 min-w-[40px]">{cp.time}</span>
                               <span className="text-slate-300">{cp.check}</span>
@@ -1534,6 +1544,62 @@ export default function App() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </Card>
+
+                {/* VOD Review Template */}
+                <Card title="VOD Review Template" icon="📋">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-bold text-green-400 mb-3">✓ What to Look For</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="p-2 bg-green-500/10 rounded">Every death - what caused it?</div>
+                        <div className="p-2 bg-green-500/10 rounded">CS numbers at 5, 10, 15 minutes</div>
+                        <div className="p-2 bg-green-500/10 rounded">Map awareness - did you see ganks?</div>
+                        <div className="p-2 bg-green-500/10 rounded">Objective participation</div>
+                        <div className="p-2 bg-green-500/10 rounded">Teamfight positioning</div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-red-400 mb-3">✗ Common Mistakes to Spot</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="p-2 bg-red-500/10 rounded">Dying without flash available</div>
+                        <div className="p-2 bg-red-500/10 rounded">Missing CS for no reason</div>
+                        <div className="p-2 bg-red-500/10 rounded">Not tracking enemy jungler</div>
+                        <div className="p-2 bg-red-500/10 rounded">Bad recall timings (losing waves)</div>
+                        <div className="p-2 bg-red-500/10 rounded">Fighting without vision</div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Recording Tips */}
+                <Card title="How to Record & Review" icon="🎥">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-slate-700/30 rounded-xl">
+                      <div className="font-bold text-purple-400 mb-2">1. Recording</div>
+                      <div className="text-sm text-slate-300 space-y-1">
+                        <p>• Use League's built-in replay</p>
+                        <p>• OBS for live commentary</p>
+                        <p>• Insights.gg for auto-highlights</p>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-slate-700/30 rounded-xl">
+                      <div className="font-bold text-blue-400 mb-2">2. Reviewing</div>
+                      <div className="text-sm text-slate-300 space-y-1">
+                        <p>• Watch at 2x speed first</p>
+                        <p>• Slow down at key moments</p>
+                        <p>• Focus on YOUR decisions</p>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-slate-700/30 rounded-xl">
+                      <div className="font-bold text-green-400 mb-2">3. Taking Notes</div>
+                      <div className="text-sm text-slate-300 space-y-1">
+                        <p>• Write down timestamps</p>
+                        <p>• Note patterns in mistakes</p>
+                        <p>• Create action items</p>
+                      </div>
+                    </div>
                   </div>
                 </Card>
               </div>
