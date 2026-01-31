@@ -1,643 +1,973 @@
-// Advanced Rune Recommendation System
-// Matchup-specific rune pages with mathematical analysis for ALL champions
+// =====================================================
+// ULTIMATE RUNE ENGINE - ALL CHAMPIONS, ALL MATCHUPS
+// Complete mathematical analysis and matchup-specific rune pages
+// =====================================================
 
-// ==================== RUNE MATH & FORMULAS ====================
+// ==================== KEYSTONE MATH ====================
 export const runeMath = {
-  // PRECISION KEYSTONES
+  // PRECISION TREE
   Conqueror: {
-    description: "Stacks up to 12 times. At max stacks, gain Adaptive Force and heal for a portion of damage dealt.",
-    formula: "Adaptive Force = 2-4.5 per stack (based on level) = 24-54 total at max stacks",
-    healing: "Heals for 8% of damage dealt to champions (5% for ranged)",
-    stackRate: "1 stack per ability hit, 2 stacks per auto attack",
+    name: "Conqueror",
+    description: "Gain stacks of Adaptive Force when attacking champions. At max stacks, heal for a portion of damage dealt.",
+    formula: "Per Stack: 2-4.5 AD or 3.3-7.5 AP (based on level). Max Stacks: 12",
     math: {
-      level1: { perStack: 2, maxAD: 24, maxAP: 40 },
-      level6: { perStack: 2.7, maxAD: 32.4, maxAP: 54 },
-      level11: { perStack: 3.5, maxAD: 42, maxAP: 70 },
-      level18: { perStack: 4.5, maxAD: 54, maxAP: 90 }
+      level1: { perStack: 2, maxAD: 24, maxAP: 40, healing: "8% (5% ranged)" },
+      level6: { perStack: 2.7, maxAD: 32, maxAP: 54, healing: "8% (5% ranged)" },
+      level11: { perStack: 3.5, maxAD: 42, maxAP: 70, healing: "8% (5% ranged)" },
+      level18: { perStack: 4.5, maxAD: 54, maxAP: 90, healing: "8% (5% ranged)" }
     },
-    bestFor: ["Extended trades", "Drain tanks", "Bruisers", "DPS mages"],
-    worstAgainst: ["Burst champions", "Poke lanes", "Short trades"],
-    goldValue: "At level 18 max stacks: ~1890g worth of AD or ~1980g worth of AP"
+    goldValue: "Level 18: 54 AD = ~1890g | 90 AP = ~1958g",
+    bestFor: ["Extended trades", "Bruisers", "Drain tanks", "DPS fighters"],
+    worstAgainst: ["Burst champions", "Poke lanes"]
   },
-
   LethalTempo: {
-    description: "Gain attack speed with each auto. At max stacks, gain bonus range.",
-    formula: "5-15% AS per stack (based on level), 6 stacks max = 30-90% AS",
-    rangeBonus: "+50 range at max stacks (melee: +75 range)",
+    name: "Lethal Tempo",
+    description: "Gain attack speed when attacking champions. At max stacks, gain bonus range.",
+    formula: "Per Stack: 5-15% AS (level scaling). Max: 6 stacks = 30-90% AS. Breaks AS cap.",
     math: {
-      level1: { perStack: 5, maxAS: 30 },
-      level6: { perStack: 8, maxAS: 48 },
-      level11: { perStack: 12, maxAS: 72 },
-      level18: { perStack: 15, maxAS: 90 }
+      level1: { perStack: "5%", maxAS: "30%", range: "+50 (ranged) / +75 (melee)" },
+      level6: { perStack: "8%", maxAS: "48%", range: "+50 (ranged) / +75 (melee)" },
+      level11: { perStack: "12%", maxAS: "72%", range: "+50 (ranged) / +75 (melee)" },
+      level18: { perStack: "15%", maxAS: "90%", range: "+50 (ranged) / +75 (melee)" }
     },
-    bestFor: ["Auto-attackers", "ADCs", "On-hit builds", "Extended fights"],
-    worstAgainst: ["Burst trades", "Kiting enemies", "Short engages"],
-    goldValue: "At level 18 max stacks: ~2700g worth of attack speed"
+    goldValue: "Level 18: 90% AS = ~2700g worth of stats",
+    bestFor: ["Hypercarries", "Auto-attackers", "On-hit builds"],
+    worstAgainst: ["Burst trades", "Short engages"]
   },
-
   FleetFootwork: {
-    description: "Energized attacks heal you and grant movement speed.",
-    formula: "Heal = 10-100 (+30% bonus AD)(+20% AP) based on level",
-    movementSpeed: "20% for 1 second",
-    energizeRate: "Charges via movement and attacks (100 stacks needed)",
+    name: "Fleet Footwork",
+    description: "Energized attacks heal and grant movement speed.",
+    formula: "Heal: 10-100 (+30% bonus AD)(+20% AP). MS: 20% for 1s.",
     math: {
-      level1: { baseHeal: 10 },
-      level6: { baseHeal: 35 },
-      level11: { baseHeal: 60 },
-      level18: { baseHeal: 100 }
+      level1: { heal: 10, bonusADRatio: "30%", apRatio: "20%", ms: "20%" },
+      level6: { heal: 35, bonusADRatio: "30%", apRatio: "20%", ms: "20%" },
+      level11: { heal: 60, bonusADRatio: "30%", apRatio: "20%", ms: "20%" },
+      level18: { heal: 100, bonusADRatio: "30%", apRatio: "20%", ms: "20%" }
     },
-    bestFor: ["Sustain lanes", "Kiting ADCs", "Poke matchups", "Immobile carries"],
-    worstAgainst: ["All-in matchups where damage > sustain"],
-    goldValue: "Varies by game length, ~500-1500g in healing over lane phase"
+    goldValue: "~500-1500g in healing over lane phase",
+    bestFor: ["Sustain lanes", "Poke matchups", "Kiting ADCs"],
+    worstAgainst: ["All-in matchups", "Heavy burst"]
   },
-
   PressTheAttack: {
-    description: "3 consecutive attacks expose target for bonus damage.",
-    formula: "Proc damage = 40-180 (based on level). Exposed targets take 8-12% increased damage for 6s.",
+    name: "Press the Attack",
+    description: "3 consecutive attacks deal bonus damage and expose the target.",
+    formula: "Proc: 40-180 (based on level). Exposure: 8-12% increased damage for 6s.",
     math: {
-      level1: { procDamage: 40, ampPercent: 8 },
-      level6: { procDamage: 75, ampPercent: 9 },
-      level11: { procDamage: 120, ampPercent: 10.5 },
-      level18: { procDamage: 180, ampPercent: 12 }
+      level1: { proc: 40, exposure: "8%", duration: "6s" },
+      level6: { proc: 75, exposure: "9%", duration: "6s" },
+      level11: { proc: 120, exposure: "10.5%", duration: "6s" },
+      level18: { proc: 180, exposure: "12%", duration: "6s" }
     },
-    bestFor: ["Short trades", "Burst ADCs", "Dueling", "Team amplification"],
-    worstAgainst: ["Tanks that you can't 3-hit", "Kiting enemies"],
-    goldValue: "The 12% damage amp on a 2000 damage combo = 240 extra damage"
+    goldValue: "12% amp on 2000 damage combo = 240 extra damage",
+    bestFor: ["Short trades", "Burst ADCs", "Team amplification"],
+    worstAgainst: ["Kiting enemies", "Tanks you can't burst"]
   },
 
-  // DOMINATION KEYSTONES
+  // DOMINATION TREE
   Electrocute: {
-    description: "3 unique attacks/abilities deal bonus adaptive damage.",
-    formula: "30-180 (+40% bonus AD)(+25% AP) based on level",
-    cooldown: "25-20 seconds based on level",
+    name: "Electrocute",
+    description: "3 unique attacks/abilities within 3s deal bonus adaptive damage.",
+    formula: "30-180 (+40% bonus AD)(+25% AP). CD: 25-20s (based on level).",
     math: {
-      level1: { baseDamage: 30 },
-      level6: { baseDamage: 70 },
-      level11: { baseDamage: 120 },
-      level18: { baseDamage: 180 }
+      level1: { damage: 30, adRatio: "40%", apRatio: "25%", cd: "25s" },
+      level6: { damage: 70, adRatio: "40%", apRatio: "25%", cd: "23s" },
+      level11: { damage: 120, adRatio: "40%", apRatio: "25%", cd: "21s" },
+      level18: { damage: 180, adRatio: "40%", apRatio: "25%", cd: "20s" }
     },
-    bestFor: ["Burst assassins", "All-in combos", "Short trades"],
-    worstAgainst: ["Poke lanes", "Extended trades", "Tanks"],
-    goldValue: "At level 18 with 100 bonus AD: 180+40 = 220 burst damage"
+    goldValue: "180 + 40% of 100 bonus AD = 220 burst damage",
+    bestFor: ["Assassins", "Burst mages", "All-in combos"],
+    worstAgainst: ["Extended trades", "Poke lanes"]
   },
-
   DarkHarvest: {
-    description: "Damaging low HP champions deals bonus damage and harvests their soul.",
-    formula: "20-60 (+5 per soul)(+25% bonus AD)(+15% AP) based on level",
-    threshold: "Enemy must be below 50% HP",
+    name: "Dark Harvest",
+    description: "Damage low HP champions for bonus damage. Collect souls on takedown.",
+    formula: "20-60 (+5 per soul)(+25% bonus AD)(+15% AP). Threshold: Below 50% HP.",
     math: {
-      level1: { baseDamage: 20 },
-      level6: { baseDamage: 35 },
-      level18: { baseDamage: 60 },
-      perSoul: 5
+      level1: { base: 20, perSoul: 5, adRatio: "25%", apRatio: "15%" },
+      level18: { base: 60, perSoul: 5, adRatio: "25%", apRatio: "15%" },
+      example: "30 souls + 200 AD: 60 + 150 + 50 = 260 damage"
     },
-    bestFor: ["Scaling assassins", "Reset champions", "Teamfight divers"],
-    worstAgainst: ["Lane bullies", "Early game pressure"],
-    scaling: "30 souls = +150 damage. Infinite scaling potential."
+    goldValue: "Infinite scaling potential",
+    bestFor: ["Scaling assassins", "Teamfight resets", "Jungle ganks"],
+    worstAgainst: ["Lane bullies", "Early game pressure"]
   },
-
   HailOfBlades: {
-    description: "First 3 attacks against champions have 110% bonus attack speed.",
-    formula: "110% AS for 3 attacks, can exceed AS cap",
-    cooldown: "12 seconds out of combat",
-    bestFor: ["Burst ADCs", "On-hit burst", "Quick trades"],
-    worstAgainst: ["Extended fights", "Kiting"],
-    goldValue: "110% AS = ~3300g worth of stats for 3 autos"
-  },
-
-  // SORCERY KEYSTONES
-  ArcaneComet: {
-    description: "Damaging abilities hurl a comet.",
-    formula: "30-100 (+20% bonus AD)(+10% AP) based on level",
-    cooldown: "20-8 seconds, reduced by ability hits",
+    name: "Hail of Blades",
+    description: "First 3 attacks have 110% bonus attack speed. Breaks AS cap.",
+    formula: "+110% AS for 3 attacks. CD: 12s (out of combat).",
     math: {
-      level1: { baseDamage: 30, cooldown: 20 },
-      level6: { baseDamage: 55, cooldown: 16 },
-      level11: { baseDamage: 75, cooldown: 13 },
-      level18: { baseDamage: 100, cooldown: 8 }
+      attackSpeed: "+110%",
+      attacks: 3,
+      cooldown: "12s (resets out of combat)"
     },
-    bestFor: ["Poke mages", "CC abilities (guaranteed hit)", "Lane bullies"],
-    worstAgainst: ["Mobile enemies", "All-in matchups"],
-    goldValue: "At level 18 with 200 AP: 100+20 = 120 damage per hit"
+    goldValue: "Massive burst window for 3 autos",
+    bestFor: ["On-hit burst", "Quick trades", "Specific combos (Kai'Sa, Xin)"],
+    worstAgainst: ["Extended fights", "Kiting"]
   },
 
+  // SORCERY TREE
   SummonAery: {
-    description: "Attacks and abilities send Aery to damage enemies or shield allies.",
-    formula: "Damage: 10-40 (+10% bonus AD)(+15% AP). Shield: 30-75 (+25% bonus AD)(+40% AP)",
-    cooldown: "Aery travel time (returns to you)",
+    name: "Summon Aery",
+    description: "Abilities send Aery to damage enemies or shield allies.",
+    formula: "Damage: 10-40 (+15% bonus AD)(+10% AP). Shield: 20-80 (+25% bonus AD)(+20% AP).",
     math: {
-      level1: { damage: 10, shield: 30 },
-      level6: { damage: 20, shield: 45 },
-      level18: { damage: 40, shield: 75 }
+      level1: { damage: 10, shield: 20 },
+      level18: { damage: 40, shield: 80 },
+      cooldown: "None (travel time only)"
     },
-    bestFor: ["Enchanters", "Poke supports", "DOT mages"],
-    worstAgainst: ["Burst lanes where poke doesn't matter"],
-    goldValue: "Shield scales well with AP - 40% ratio is very efficient"
+    goldValue: "Very consistent poke/shield value",
+    bestFor: ["Enchanters", "Poke mages", "DoT champions"],
+    worstAgainst: ["All-in matchups"]
   },
-
+  ArcaneComet: {
+    name: "Arcane Comet",
+    description: "Abilities hurl a comet at enemies. CD reduced by ability hits.",
+    formula: "30-100 (+35% bonus AD)(+20% AP). CD: 20-8s (reduced by hitting abilities).",
+    math: {
+      level1: { damage: 30, adRatio: "35%", apRatio: "20%", cd: "20s" },
+      level18: { damage: 100, adRatio: "35%", apRatio: "20%", cd: "8s" }
+    },
+    goldValue: "Best with CC to guarantee hits",
+    bestFor: ["Poke mages", "CC champions", "Artillery"],
+    worstAgainst: ["Mobile champions who dodge"]
+  },
   PhaseRush: {
-    description: "3 attacks/abilities grant 25-40% MS and 75% slow resist.",
-    formula: "25-40% MS based on level for 3 seconds",
-    cooldown: "15 seconds",
-    bestFor: ["Kiting mages", "Chasing bruisers", "Escaping ganks"],
-    worstAgainst: ["Lanes where you don't need mobility"],
-    goldValue: "Mobility is hard to value but very impactful"
+    name: "Phase Rush",
+    description: "3 attacks/abilities grant movement speed and slow resistance.",
+    formula: "25-40% MS (based on level) + 75% slow resist for 3s. CD: 15s.",
+    math: {
+      level1: { ms: "25%", slowResist: "75%", duration: "3s" },
+      level18: { ms: "40%", slowResist: "75%", duration: "3s" }
+    },
+    goldValue: "Utility - enables kiting and chasing",
+    bestFor: ["Kiting mages", "Melee vs ranged", "Chase/escape"],
+    worstAgainst: ["Matchups where damage matters more"]
   },
 
-  // RESOLVE KEYSTONES
+  // RESOLVE TREE
   GraspOfTheUndying: {
-    description: "Every 4 seconds in combat, next auto steals HP permanently.",
-    formula: "Damage/Heal: 4% of max HP (2.4% for ranged). Permanent HP: +5 (+2.5 for ranged)",
+    name: "Grasp of the Undying",
+    description: "In combat, attacks deal bonus damage, heal you, and grant permanent HP.",
+    formula: "Damage: 4% max HP (2.4% ranged). Heal: 2% max HP (1.2% ranged). +5 permanent HP (+3 ranged).",
     math: {
-      at1000HP: { damage: 40, heal: 40, permanent: 5 },
-      at2000HP: { damage: 80, heal: 80, permanent: 5 },
-      at3000HP: { damage: 120, heal: 120, permanent: 5 }
+      melee: { damage: "4% max HP", heal: "2% max HP", permanent: "+5 HP" },
+      ranged: { damage: "2.4% max HP", heal: "1.2% max HP", permanent: "+3 HP" },
+      example: "3000 HP: 120 damage, 60 heal per proc"
     },
-    bestFor: ["Tanks", "Short trades", "HP stacking"],
-    worstAgainst: ["Poke lanes", "Can't get in auto range"],
-    scaling: "20 procs = +100 permanent HP = 267g value per 20 procs"
+    goldValue: "20 procs = +100 permanent HP = ~267g",
+    bestFor: ["Short trades", "Tanks", "Lane sustain"],
+    worstAgainst: ["Ranged poke", "All-in matchups"]
   },
-
   Aftershock: {
-    description: "Immobilizing enemies grants armor/MR, then explodes.",
-    formula: "Resists: 35 + 80% bonus resists. Explosion: 25-120 (+8% bonus HP)",
-    duration: "2.5 seconds",
+    name: "Aftershock",
+    description: "After immobilizing an enemy, gain resistances then deal AoE damage.",
+    formula: "35 + 80% bonus Armor/MR for 2.5s. Then: 25-120 (+8% max HP) AoE damage.",
     math: {
-      level1: { explosion: 25, baseResists: 35 },
-      level6: { explosion: 50, baseResists: 35 },
-      level11: { explosion: 80, baseResists: 35 },
-      level18: { explosion: 120, baseResists: 35 }
+      level1: { armor: 35, mr: 35, damage: 25, hpRatio: "8%" },
+      level18: { armor: 80, mr: 80, damage: 120, hpRatio: "8%" },
+      duration: "2.5s resist buff"
     },
-    bestFor: ["Engage tanks", "CC supports", "Diving"],
-    worstAgainst: ["No CC in kit"],
-    goldValue: "35 armor/MR = ~1400g in resists for 2.5s"
+    goldValue: "80 Armor/MR = ~2800g worth of tank stats for 2.5s",
+    bestFor: ["Engage tanks", "CC supports", "Divers"],
+    worstAgainst: ["Poke lanes", "No CC champions"]
   },
-
   Guardian: {
-    description: "Shield nearby ally when you or they take damage.",
-    formula: "Shield: 45-120 (+15% AP)(+9% bonus HP) for 1.5s. MS: 20% for 1.5s",
-    cooldown: "70-40 seconds based on level",
+    name: "Guardian",
+    description: "Shield nearby ally when they take damage.",
+    formula: "Shield: 50-130 (+15% AP)(+9% bonus HP). MS: 20% for 1.5s. CD: 70-40s.",
     math: {
-      level1: { shield: 45 },
-      level6: { shield: 70 },
-      level11: { shield: 95 },
-      level18: { shield: 120 }
+      level1: { shield: 50, apRatio: "15%", hpRatio: "9%", cd: "70s" },
+      level18: { shield: 130, apRatio: "15%", hpRatio: "9%", cd: "40s" }
     },
-    bestFor: ["Defensive supports", "Protecting ADC", "Poke lanes"],
-    worstAgainst: ["All-in where shield isn't enough"],
-    goldValue: "At 1000 bonus HP: 120 + 90 = 210 shield value"
+    goldValue: "Protective value for duo lanes",
+    bestFor: ["Protective supports", "Duo lanes"],
+    worstAgainst: ["Solo lanes", "Poke matchups"]
   },
 
-  // INSPIRATION KEYSTONES
+  // INSPIRATION TREE
   GlacialAugment: {
-    description: "Immobilizing enemies creates a freeze ray slowing zone.",
-    formula: "30% slow + 3% per 100 AP, up to 40% slow. Zone lasts 3s.",
-    cooldown: "25 seconds per enemy",
-    bestFor: ["CC mages", "Engage supports", "Zone control"],
-    worstAgainst: ["Enemies with dashes", "No CC in kit"]
-  },
-
-  UnsealedSpellbook: {
-    description: "Swap summoner spells during the game.",
-    formula: "First swap at 6 min, then every 4 min. Summoner spell haste: 15-40%",
-    bestFor: ["High elo flexibility", "Support roaming"],
-    worstAgainst: ["Consistency reliant", "Need specific summoners"]
-  },
-
-  FirstStrike: {
-    description: "If you damage an enemy first, deal 9% bonus damage and gain gold.",
-    formula: "9% bonus TRUE damage for 3s. Gold: 100% damage dealt to champions (70% for ranged) × 0.05",
-    cooldown: "25-15 seconds",
+    name: "Glacial Augment",
+    description: "Immobilizing creates a zone that slows enemies.",
+    formula: "3 freeze rays. 30% slow + 15% damage reduction for 3s.",
     math: {
-      example: "1000 damage dealt = 90 bonus true damage + 50 gold (35 for ranged)"
+      slow: "30%",
+      damageReduction: "15%",
+      duration: "3s",
+      rays: 3
     },
-    bestFor: ["Poke champions", "Burst champions", "Gold generation"],
-    worstAgainst: ["Aggressive lanes that hit you first"],
-    goldValue: "Can generate 300-600+ gold per game"
+    goldValue: "Zone control utility",
+    bestFor: ["CC mages", "Utility supports", "Engage setups"],
+    worstAgainst: ["No CC champions"]
+  },
+  FirstStrike: {
+    name: "First Strike",
+    description: "If you damage first, deal bonus damage and gain gold.",
+    formula: "9% bonus true damage (7% ranged). Gain 70% of bonus damage as gold (50% ranged).",
+    math: {
+      melee: { damage: "9% bonus true damage", gold: "70% of bonus damage" },
+      ranged: { damage: "7% bonus true damage", gold: "50% of bonus damage" },
+      window: "3s after hitting first"
+    },
+    goldValue: "Generates 100-500g per game with good poke",
+    bestFor: ["Poke champions", "First-strike traders"],
+    worstAgainst: ["Aggressive lanes that hit you first"]
   }
 };
 
 // ==================== MINOR RUNES MATH ====================
 export const minorRuneMath = {
   // Precision
-  Overheal: { formula: "Excess healing becomes shield up to 10% max HP", value: "At 2000 HP = 200 shield max" },
-  Triumph: { formula: "Takedowns restore 10% missing HP + 20 gold", value: "10 kills = 200 bonus gold" },
-  PresenceOfMind: { formula: "Takedowns restore 15% max mana", value: "Sustain for mana-hungry champs" },
-  LegendAlacrity: { formula: "3% AS + 1.5% per stack (max 10) = 18% AS", value: "~540g worth of AS" },
-  LegendTenacity: { formula: "5% + 2.5% per stack (max 10) = 30% Tenacity", value: "Stacks with Mercury Treads" },
-  LegendBloodline: { formula: "0.4% per stack (max 10) = 4% Lifesteal", value: "~350g worth of lifesteal" },
-  CoupDeGrace: { formula: "8% more damage to targets below 40% HP", value: "Great for executes" },
-  CutDown: { formula: "5-15% more damage based on HP difference", value: "Best vs tanks" },
-  LastStand: { formula: "5-11% more damage when below 60% HP", value: "Best for drain tanks" },
-
+  Triumph: { effect: "Takedowns restore 10% missing HP + 20g", value: "~200-400g over game" },
+  PresenceOfMind: { effect: "Takedowns restore 15% max mana. Abilities restore mana on hit", value: "Mana sustain" },
+  LegendAlacrity: { effect: "Up to 18% AS at max stacks", value: "18% AS = ~540g" },
+  LegendTenacity: { effect: "Up to 30% tenacity at max stacks", value: "Unique stat, invaluable vs CC" },
+  LegendBloodline: { effect: "Up to 6% lifesteal + 100 HP at max", value: "6% LS = ~330g + 267g HP" },
+  CoupDeGrace: { effect: "8% more damage to targets below 40% HP", value: "Execute damage" },
+  CutDown: { effect: "Up to 15% more damage based on HP difference", value: "Tank shred" },
+  LastStand: { effect: "Up to 11% more damage when below 30% HP", value: "Clutch fights" },
+  
   // Domination
-  CheapShot: { formula: "10-45 bonus true damage to CC'd targets", value: "~300-500 damage per game" },
-  TasteOfBlood: { formula: "16-30 (+15% bonus AD)(+8% AP) healing", value: "20s CD, good sustain" },
-  SuddenImpact: { formula: "7 Lethality + 6 Magic Pen after dash/blink", value: "~200g worth of pen" },
-  ZombieWard: { formula: "Killing wards spawns allied ward + 1.2 AD/2 AP per ward", value: "Up to 30 AD/50 AP" },
-  GhostPoro: { formula: "Poro in bush gives vision + 1.2 AD/2 AP per poro", value: "Up to 30 AD/50 AP" },
-  EyeballCollection: { formula: "1.2 AD/2 AP per takedown (max 10) = 12 AD/20 AP", value: "~420g AD or ~435g AP" },
-  TreasureHunter: { formula: "50g per unique takedown (max 5) = 250g", value: "Fast gold generation" },
-  RelentlessHunter: { formula: "5 + 8 per stack out of combat MS (max 45)", value: "Great for roaming" },
-  UltimateHunter: { formula: "5 + 5% per stack ultimate CDR (max 30%)", value: "Ult-dependent champions" },
-
+  SuddenImpact: { effect: "+9 Lethality + 7 Magic Pen for 5s after dash/blink", value: "~300g in pen" },
+  TasteOfBlood: { effect: "16 + 15% AD + 10% AP healing. 20s CD", value: "Lane sustain" },
+  CheapShot: { effect: "10-45 bonus true damage to CC'd targets", value: "Easy extra damage" },
+  EyeballCollection: { effect: "1.2 AD or 2 AP per stack (max 10). +6 AD/10 AP at max", value: "~210g AD or 217g AP" },
+  TreasureHunter: { effect: "70+60+50+40+30 = 250g from unique takedowns", value: "Early gold spike" },
+  UltimateHunter: { effect: "5% ult CDR per unique takedown (max 25%)", value: "100s ult → 75s" },
+  
   // Sorcery
-  NullifyingOrb: { formula: "Shield vs magic: 35-110 (+15% bonus AD)(+10% AP)", value: "Clutch vs AP burst" },
-  ManaflowBand: { formula: "25 max mana per hit (max 250) then 1% mana regen", value: "Great for mana issues" },
-  NimbusCloak: { formula: "5-25% MS after summoner spell for 2s", value: "Flash engage/escape" },
-  Transcendence: { formula: "5 AH at 5, 5 AH at 8, ability refund at 11", value: "10 AH = ~263g" },
-  Celerity: { formula: "7% bonus MS, MS bonuses +7% effective", value: "Good for MS stacking" },
-  AbsoluteFocus: { formula: "1.8-18 AD or 3-30 AP when above 70% HP", value: "~630g AD or ~650g AP" },
-  Scorch: { formula: "20-40 magic damage over 1s", value: "~100-200 damage per lane" },
-  Waterwalking: { formula: "25 MS + 3-18 AD/5-30 AP in river", value: "Great for junglers" },
-  GatheringStorm: { formula: "10 min: 4.8 AD/8 AP, 20 min: 14.4 AD/24 AP, 30 min: 28.8 AD/48 AP", value: "Best scaling rune" },
-
+  ManaflowBand: { effect: "+250 max mana when stacked. Then 1% missing mana regen/5s", value: "~350g + sustain" },
+  Transcendence: { effect: "+10 AH at level 8. Takedowns reduce CDs by 20%", value: "+10 AH = ~267g" },
+  GatheringStorm: { effect: "10 min: 8 AD/14 AP. 20 min: 24 AD/42 AP. 30 min: 48 AD/84 AP", value: "Infinite scaling" },
+  Scorch: { effect: "20 magic damage on ability hit. 10s CD", value: "200+ damage in lane" },
+  
   // Resolve
-  Demolish: { formula: "30% max HP + 100-350 damage to tower every 45s", value: "~2 plates per game" },
-  FontOfLife: { formula: "CC'd enemies marked, allies heal 5+1% max HP", value: "Team sustain" },
-  ShieldBash: { formula: "1-10 bonus AR/MR when shielded, empowered auto", value: "Synergy with shields" },
-  Conditioning: { formula: "After 12 min: +8 AR/MR + 3% bonus resists", value: "~540g worth of resists" },
-  SecondWind: { formula: "Heal 3% missing HP over 10s after taking damage", value: "Great vs poke" },
-  BonePlating: { formula: "Next 3 attacks/abilities deal 30-60 less damage", value: "Blocks 90-180 damage" },
-  Overgrowth: { formula: "+3 HP per 8 nearby minion deaths, +3.5% HP at 120", value: "~200-400 bonus HP" },
-  Revitalize: { formula: "+5% heals/shields, +10% on low HP targets", value: "Enchanter synergy" },
-  Unflinching: { formula: "10-30% tenacity/slow resist based on missing HP", value: "Anti-CC" },
-
-  // Inspiration
-  HextechFlashtraption: { formula: "Channel flash over walls", value: "Unique engage angles" },
-  MagicalFootwear: { formula: "Free boots at 12 min (+10 MS)", value: "300g saved + better boots" },
-  CashBack: { formula: "Refund 3% of item cost as gold", value: "~150-300g over full build" },
-  TripleTonicFormula: { formula: "Elixir gives 3 buffs instead of 1", value: "Strong late game" },
-  TimeWarpTonic: { formula: "Potions give 50% effect instantly + 5% MS", value: "Strong lane sustain" },
-  BiscuitDelivery: { formula: "3 biscuits (12% max HP/mana) + 40 mana", value: "120 permanent mana" },
-  CosmicInsight: { formula: "18 summoner spell haste, 10 item haste", value: "More flash/exhaust" },
-  ApproachVelocity: { formula: "+7.5% MS toward CC'd/movement impaired enemies", value: "Chase potential" },
-  JackOfAllTrades: { formula: "5 AH + 9 adaptive per 2 unique stats", value: "Diverse builds" }
+  SecondWind: { effect: "After taking damage: 3 + 4% max HP + 4% damage taken over 10s", value: "Anti-poke sustain" },
+  BonePlating: { effect: "Block 30-60 damage from next 3 attacks/spells. 45s CD", value: "Anti-burst" },
+  Overgrowth: { effect: "+3 HP per 8 minions nearby. At 120: +2.5% max HP", value: "~300-500 HP late" },
+  Revitalize: { effect: "+5% healing/shielding. +10% more below 40% HP", value: "Enchanter boost" },
+  Conditioning: { effect: "At 12 min: +8 Armor/MR + 3% total", value: "~500g in resists" },
+  Unflinching: { effect: "5-25% tenacity/slow resist based on missing HP", value: "Clutch tenacity" }
 };
 
-// ==================== MATCHUP-SPECIFIC RUNE PAGES ====================
-export const generateRunePage = (champion, enemyChampion, role, traits, enemyTraits) => {
-  const pages = [];
-  
-  // Analyze matchup
-  const isBurstMatchup = enemyTraits?.burst >= 4;
-  const isPokeMatchup = enemyTraits?.range === 'ranged' && traits?.range === 'melee';
-  const isSustainMatchup = enemyTraits?.sustain >= 4;
-  const isAllInMatchup = traits?.burst >= 4 || traits?.dps >= 4;
-  const isTankMatchup = enemyTraits?.tankiness >= 4;
-  const isAssassinMatchup = enemyTraits?.burst >= 4 && enemyTraits?.mobility >= 4;
-  
-  // Determine primary tree based on champion type
-  let primaryTree, keystone, primaryRunes;
-  let secondaryTree, secondaryRunes;
-  
-  // ========== TOP LANE RUNES ==========
-  if (role === 'Top') {
-    if (traits?.sustain >= 4 || traits?.damage === 'physical' && traits?.dps >= 3) {
-      // Bruiser/Fighter
-      primaryTree = 'Precision';
-      if (isPokeMatchup || isBurstMatchup) {
-        keystone = 'Fleet Footwork';
-        primaryRunes = ['Triumph', 'Legend: Tenacity', 'Last Stand'];
-      } else {
-        keystone = 'Conqueror';
-        primaryRunes = ['Triumph', 'Legend: Tenacity', 'Last Stand'];
-      }
-      
-      if (isPokeMatchup) {
-        secondaryTree = 'Resolve';
-        secondaryRunes = ['Second Wind', 'Unflinching'];
-      } else if (isBurstMatchup) {
-        secondaryTree = 'Resolve';
-        secondaryRunes = ['Bone Plating', 'Overgrowth'];
-      } else {
-        secondaryTree = 'Resolve';
-        secondaryRunes = ['Second Wind', 'Revitalize'];
-      }
-    } else if (traits?.tankiness >= 4) {
-      // Tank
-      primaryTree = 'Resolve';
-      if (isPokeMatchup) {
-        keystone = 'Grasp of the Undying';
-        primaryRunes = ['Demolish', 'Second Wind', 'Overgrowth'];
-      } else {
-        keystone = 'Grasp of the Undying';
-        primaryRunes = ['Demolish', 'Bone Plating', 'Overgrowth'];
-      }
-      secondaryTree = 'Precision';
-      secondaryRunes = ['Legend: Tenacity', 'Last Stand'];
-    } else if (traits?.burst >= 4) {
-      // Assassin top (Akali, etc)
-      primaryTree = 'Domination';
-      keystone = 'Electrocute';
-      primaryRunes = ['Sudden Impact', 'Eyeball Collection', 'Ultimate Hunter'];
-      secondaryTree = 'Resolve';
-      secondaryRunes = [isPokeMatchup ? 'Second Wind' : 'Bone Plating', 'Overgrowth'];
-    }
-  }
-  
-  // ========== JUNGLE RUNES ==========
-  if (role === 'Jungle') {
-    if (traits?.burst >= 4 && traits?.mobility >= 3) {
-      // Assassin jungler
-      primaryTree = 'Domination';
-      keystone = 'Electrocute';
-      primaryRunes = ['Sudden Impact', 'Eyeball Collection', 'Relentless Hunter'];
-      secondaryTree = 'Precision';
-      secondaryRunes = ['Triumph', 'Coup de Grace'];
-    } else if (traits?.sustain >= 3 && traits?.dps >= 3) {
-      // Bruiser jungler
-      primaryTree = 'Precision';
-      keystone = 'Conqueror';
-      primaryRunes = ['Triumph', 'Legend: Alacrity', 'Last Stand'];
-      secondaryTree = 'Resolve';
-      secondaryRunes = ['Conditioning', 'Unflinching'];
-    } else if (traits?.tankiness >= 4) {
-      // Tank jungler
-      primaryTree = 'Resolve';
-      keystone = 'Aftershock';
-      primaryRunes = ['Font of Life', 'Conditioning', 'Unflinching'];
-      secondaryTree = 'Precision';
-      secondaryRunes = ['Triumph', 'Legend: Tenacity'];
-    } else if (traits?.dps >= 4) {
-      // DPS jungler (Yi, Kindred)
-      primaryTree = 'Precision';
-      keystone = 'Lethal Tempo';
-      primaryRunes = ['Triumph', 'Legend: Alacrity', 'Coup de Grace'];
-      secondaryTree = 'Domination';
-      secondaryRunes = ['Eyeball Collection', 'Treasure Hunter'];
-    }
-  }
-  
-  // ========== MID LANE RUNES ==========
-  if (role === 'Mid') {
-    if (traits?.burst >= 4 && traits?.damage === 'physical') {
-      // AD Assassin
-      primaryTree = 'Domination';
-      keystone = 'Electrocute';
-      primaryRunes = ['Sudden Impact', 'Eyeball Collection', 'Ultimate Hunter'];
-      if (isPokeMatchup) {
-        secondaryTree = 'Resolve';
-        secondaryRunes = ['Second Wind', 'Unflinching'];
-      } else {
-        secondaryTree = 'Precision';
-        secondaryRunes = ['Triumph', 'Coup de Grace'];
-      }
-    } else if (traits?.burst >= 4 && traits?.damage === 'magic') {
-      // AP Assassin/Burst mage
-      primaryTree = 'Domination';
-      keystone = 'Electrocute';
-      primaryRunes = ['Sudden Impact', 'Eyeball Collection', 'Ultimate Hunter'];
-      secondaryTree = 'Sorcery';
-      secondaryRunes = ['Transcendence', 'Gathering Storm'];
-    } else if (traits?.dps >= 4) {
-      // DPS Mage
-      primaryTree = 'Sorcery';
-      if (enemyTraits?.mobility >= 4) {
-        keystone = 'Phase Rush';
-      } else {
-        keystone = 'Arcane Comet';
-      }
-      primaryRunes = ['Manaflow Band', 'Transcendence', 'Gathering Storm'];
-      secondaryTree = 'Inspiration';
-      secondaryRunes = ['Biscuit Delivery', 'Cosmic Insight'];
-    } else if (traits?.range === 'ranged' && traits?.cc >= 2) {
-      // Control Mage
-      primaryTree = 'Sorcery';
-      keystone = 'Arcane Comet';
-      primaryRunes = ['Manaflow Band', 'Transcendence', 'Scorch'];
-      secondaryTree = 'Inspiration';
-      secondaryRunes = ['Biscuit Delivery', 'Cosmic Insight'];
-    }
-  }
-  
-  // ========== ADC RUNES ==========
-  if (role === 'ADC') {
-    if (traits?.dps >= 4) {
-      // Hypercarry ADC
-      primaryTree = 'Precision';
-      keystone = 'Lethal Tempo';
-      primaryRunes = ['Triumph', 'Legend: Alacrity', 'Coup de Grace'];
-      secondaryTree = 'Domination';
-      secondaryRunes = ['Taste of Blood', 'Treasure Hunter'];
-    } else if (traits?.burst >= 4) {
-      // Burst ADC (Draven, Jhin)
-      primaryTree = 'Precision';
-      keystone = 'Press the Attack';
-      primaryRunes = ['Triumph', 'Legend: Bloodline', 'Coup de Grace'];
-      secondaryTree = 'Domination';
-      secondaryRunes = ['Taste of Blood', 'Eyeball Collection'];
-    } else if (traits?.mobility >= 4) {
-      // Mobile ADC (Ezreal, Lucian)
-      primaryTree = 'Precision';
-      keystone = 'Press the Attack';
-      primaryRunes = ['Presence of Mind', 'Legend: Bloodline', 'Coup de Grace'];
-      secondaryTree = 'Inspiration';
-      secondaryRunes = ['Magical Footwear', 'Biscuit Delivery'];
-    }
-    
-    // Adjust for hard matchups
-    if (isAssassinMatchup) {
-      secondaryTree = 'Resolve';
-      secondaryRunes = ['Bone Plating', 'Overgrowth'];
-    }
-  }
-  
-  // ========== SUPPORT RUNES ==========
-  if (role === 'Support') {
-    if (traits?.cc >= 4 && traits?.tankiness >= 3) {
-      // Engage Support
-      primaryTree = 'Resolve';
-      keystone = 'Aftershock';
-      primaryRunes = ['Font of Life', 'Bone Plating', 'Unflinching'];
-      secondaryTree = 'Hextech';
-      secondaryRunes = ['Hextech Flashtraption', 'Cosmic Insight'];
-    } else if (traits?.sustain >= 4) {
-      // Enchanter
-      primaryTree = 'Sorcery';
-      keystone = 'Summon Aery';
-      primaryRunes = ['Manaflow Band', 'Transcendence', 'Gathering Storm'];
-      secondaryTree = 'Resolve';
-      secondaryRunes = ['Revitalize', 'Bone Plating'];
-    } else if (traits?.burst >= 4) {
-      // Mage Support
-      primaryTree = 'Domination';
-      keystone = 'Electrocute';
-      primaryRunes = ['Cheap Shot', 'Zombie Ward', 'Relentless Hunter'];
-      secondaryTree = 'Precision';
-      secondaryRunes = ['Presence of Mind', 'Coup de Grace'];
-    } else if (traits?.cc >= 3) {
-      // Hook Support
-      primaryTree = 'Resolve';
-      keystone = 'Aftershock';
-      primaryRunes = ['Font of Life', 'Bone Plating', 'Unflinching'];
-      secondaryTree = 'Inspiration';
-      secondaryRunes = ['Hextech Flashtraption', 'Cosmic Insight'];
-    }
-  }
-  
-  // Stat shards based on matchup
-  let statShards;
-  if (traits?.damage === 'physical') {
-    if (enemyTraits?.damage === 'physical') {
-      statShards = ['Adaptive Force', 'Adaptive Force', 'Armor'];
-    } else if (enemyTraits?.damage === 'magic') {
-      statShards = ['Adaptive Force', 'Adaptive Force', 'Magic Resist'];
-    } else {
-      statShards = ['Adaptive Force', 'Adaptive Force', 'Health'];
-    }
-  } else if (traits?.damage === 'magic') {
-    if (enemyTraits?.damage === 'physical') {
-      statShards = ['Adaptive Force', 'Adaptive Force', 'Armor'];
-    } else if (enemyTraits?.damage === 'magic') {
-      statShards = ['Adaptive Force', 'Adaptive Force', 'Magic Resist'];
-    } else {
-      statShards = ['Adaptive Force', 'Adaptive Force', 'Health'];
-    }
-  } else {
-    statShards = ['Attack Speed', 'Adaptive Force', 'Health'];
-  }
-  
-  return {
-    primaryTree: primaryTree || 'Precision',
-    keystone: keystone || 'Conqueror',
-    primaryRunes: primaryRunes || ['Triumph', 'Legend: Alacrity', 'Coup de Grace'],
-    secondaryTree: secondaryTree || 'Resolve',
-    secondaryRunes: secondaryRunes || ['Bone Plating', 'Overgrowth'],
-    statShards: statShards || ['Adaptive Force', 'Adaptive Force', 'Health'],
-    reasoning: {
-      keystone: getKeystoneReasoning(keystone, traits, enemyTraits),
-      secondary: getSecondaryReasoning(secondaryTree, secondaryRunes, traits, enemyTraits)
-    }
-  };
-};
+// ==================== CHAMPION RUNE PAGES ====================
+// Coverage: ALL champions with default + matchup-specific pages
 
-// Helper function for keystone reasoning
-const getKeystoneReasoning = (keystone, traits, enemyTraits) => {
-  const reasons = {
-    'Conqueror': `Extended fights favor you. At max stacks, gain ${runeMath.Conqueror.math.level18.maxAD} AD and 8% healing.`,
-    'Lethal Tempo': `Your DPS scales with attack speed. At max stacks, +${runeMath.LethalTempo.math.level18.maxAS}% AS + 50 range.`,
-    'Fleet Footwork': `Sustain through poke/hard matchup. Heals ${runeMath.FleetFootwork.math.level18.baseHeal}+ and gives MS to kite.`,
-    'Press the Attack': `Short trades are your strength. 8-12% damage amp for team after 3 hits.`,
-    'Electrocute': `Burst combo deals ${runeMath.Electrocute.math.level18.baseDamage}+ bonus damage. Perfect for assassinations.`,
-    'Dark Harvest': `Scales infinitely. Each soul = +5 damage. Great for teamfight resets.`,
-    'Hail of Blades': `110% AS for 3 autos = massive burst. Breaks AS cap.`,
-    'Arcane Comet': `Poke pattern with abilities. ${runeMath.ArcaneComet.math.level18.baseDamage}+ damage per hit.`,
-    'Summon Aery': `Poke and protect. Damage on enemies, shield on allies. Very versatile.`,
-    'Phase Rush': `Kiting and chasing. 25-40% MS to escape or chase after combo.`,
-    'Grasp of the Undying': `Tank sustain. 4% max HP damage/heal + permanent HP stacking.`,
-    'Aftershock': `Engage survivability. 35+ armor/MR for 2.5s after CC.`,
-    'Guardian': `Protect your carry. ${runeMath.Guardian.math.level18.shield}+ shield when taking damage.`,
-    'Glacial Augment': `Zone control. 30-40% slow field after CC.`,
-    'First Strike': `Poke for gold. 9% bonus true damage + gold generation.`
-  };
-  return reasons[keystone] || 'Standard keystone for this champion and matchup.';
-};
-
-// Helper function for secondary reasoning
-const getSecondaryReasoning = (tree, runes, traits, enemyTraits) => {
-  if (tree === 'Resolve') {
-    if (runes.includes('Second Wind')) {
-      return 'Second Wind for sustain vs poke. Heals 3% missing HP over 10s after taking damage.';
-    }
-    if (runes.includes('Bone Plating')) {
-      return 'Bone Plating blocks 90-180 damage from burst trades. Crucial vs all-in.';
-    }
-  }
-  if (tree === 'Precision') {
-    return 'Precision secondary for Triumph (10% missing HP on takedown) and damage/tenacity.';
-  }
-  if (tree === 'Domination') {
-    return 'Domination for extra damage and utility from Eyeball/Hunter runes.';
-  }
-  if (tree === 'Sorcery') {
-    return 'Sorcery for ability haste (Transcendence) and scaling (Gathering Storm).';
-  }
-  if (tree === 'Inspiration') {
-    return 'Inspiration for sustain (Biscuits) and summoner spell CDR (Cosmic Insight).';
-  }
-  return 'Standard secondary tree for this matchup.';
-};
-
-// ==================== CHAMPION-SPECIFIC RUNE PRESETS ====================
 export const championRunePresets = {
-  // Top Lane
+  // ============ TOP LANE ============
   Aatrox: {
-    standard: { keystone: 'Conqueror', primary: 'Precision', runes: ['Triumph', 'Legend: Tenacity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Second Wind', 'Unflinching'] },
-    vsBurst: { keystone: 'Conqueror', primary: 'Precision', runes: ['Triumph', 'Legend: Tenacity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Bone Plating', 'Overgrowth'] },
-    vsPoke: { keystone: 'Fleet Footwork', primary: 'Precision', runes: ['Triumph', 'Legend: Tenacity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Second Wind', 'Revitalize'] }
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsPoke: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Teemo", "Jayce", "Quinn", "Kennen", "Vayne"] },
+    vsTank: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Cut Down"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Malphite", "Ornn", "Sion", "Cho'Gath"] },
+    vsBurst: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Riven", "Renekton", "Wukong", "Pantheon"] }
+  },
+  Camille: {
+    default: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Shield Bash", "Second Wind", "Overgrowth"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsSquishies: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Jayce", "Quinn", "Teemo", "Kayle"] },
+    vsTanks: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Cut Down"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Malphite", "Ornn", "Sion"] }
   },
   Darius: {
-    standard: { keystone: 'Conqueror', primary: 'Precision', runes: ['Triumph', 'Legend: Tenacity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Second Wind', 'Unflinching'] },
-    vsRanged: { keystone: 'Fleet Footwork', primary: 'Precision', runes: ['Triumph', 'Legend: Tenacity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Second Wind', 'Approach Velocity'] },
-    allIn: { keystone: 'Ghost', primary: 'Precision', runes: ['Triumph', 'Legend: Tenacity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Bone Plating', 'Unflinching'] }
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Armor"] },
+    vsRanged: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Nimbus Cloak", "Celerity", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Movement Speed", "Health"], into: ["Vayne", "Quinn", "Teemo", "Jayce", "Kennen"] },
+    vsTank: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Demolish", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Malphite", "Ornn", "Sion", "Cho'Gath"] }
   },
   Fiora: {
-    standard: { keystone: 'Conqueror', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Second Wind', 'Unflinching'] },
-    vsAP: { keystone: 'Conqueror', primary: 'Precision', runes: ['Triumph', 'Legend: Tenacity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Second Wind', 'Unflinching'] },
-    grasp: { keystone: 'Grasp of the Undying', primary: 'Resolve', runes: ['Demolish', 'Second Wind', 'Overgrowth'], secondary: 'Precision', secondaryRunes: ['Legend: Alacrity', 'Last Stand'] }
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsPoke: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Teemo", "Jayce", "Quinn", "Kennen"] },
+    vsTank: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Demolish", "Second Wind", "Overgrowth"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Malphite", "Ornn", "Shen", "Poppy"] }
   },
-  
-  // Jungle
-  LeeSin: {
-    standard: { keystone: 'Conqueror', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Coup de Grace'], secondary: 'Domination', secondaryRunes: ['Sudden Impact', 'Treasure Hunter'] },
-    electrocute: { keystone: 'Electrocute', primary: 'Domination', runes: ['Sudden Impact', 'Eyeball Collection', 'Relentless Hunter'], secondary: 'Precision', secondaryRunes: ['Triumph', 'Coup de Grace'] }
+  Gangplank: {
+    default: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Demolish", "Second Wind", "Overgrowth"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Time Warp Tonic"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAllIn: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Demolish", "Bone Plating", "Overgrowth"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Time Warp Tonic"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Riven", "Irelia", "Renekton", "Wukong"] }
   },
-  Kayn: {
-    shadow: { keystone: 'Dark Harvest', primary: 'Domination', runes: ['Sudden Impact', 'Eyeball Collection', 'Ultimate Hunter'], secondary: 'Precision', secondaryRunes: ['Triumph', 'Coup de Grace'] },
-    rhaast: { keystone: 'Conqueror', primary: 'Precision', runes: ['Triumph', 'Legend: Tenacity', 'Last Stand'], secondary: 'Domination', secondaryRunes: ['Sudden Impact', 'Treasure Hunter'] }
+  Garen: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Armor"] },
+    vsRanged: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Nimbus Cloak", "Celerity", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Movement Speed", "Health"], into: ["Vayne", "Quinn", "Teemo", "Jayce", "Kennen"] },
+    vsAP: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Conditioning"], shards: ["Adaptive", "Adaptive", "MR"], into: ["Teemo", "Kennen", "Mordekaiser", "Rumble"] }
   },
-  MasterYi: {
-    standard: { keystone: 'Lethal Tempo', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Coup de Grace'], secondary: 'Domination', secondaryRunes: ['Eyeball Collection', 'Treasure Hunter'] },
-    onHit: { keystone: 'Lethal Tempo', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Cut Down'], secondary: 'Domination', secondaryRunes: ['Sudden Impact', 'Treasure Hunter'] }
+  Gwen: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsTank: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Cut Down"], secondary: "Sorcery", secondaryRunes: ["Transcendence", "Gathering Storm"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Malphite", "Ornn", "Sion"] }
   },
-  
-  // Mid Lane
-  Ahri: {
-    standard: { keystone: 'Electrocute', primary: 'Domination', runes: ['Taste of Blood', 'Eyeball Collection', 'Ultimate Hunter'], secondary: 'Sorcery', secondaryRunes: ['Manaflow Band', 'Transcendence'] },
-    safe: { keystone: 'Summon Aery', primary: 'Sorcery', runes: ['Manaflow Band', 'Transcendence', 'Scorch'], secondary: 'Domination', secondaryRunes: ['Taste of Blood', 'Ultimate Hunter'] }
+  Illaoi: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsPoke: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Teemo", "Jayce", "Quinn", "Kennen"] }
   },
-  Zed: {
-    standard: { keystone: 'Electrocute', primary: 'Domination', runes: ['Taste of Blood', 'Eyeball Collection', 'Ultimate Hunter'], secondary: 'Sorcery', secondaryRunes: ['Transcendence', 'Scorch'] },
-    hardLane: { keystone: 'Electrocute', primary: 'Domination', runes: ['Taste of Blood', 'Eyeball Collection', 'Ultimate Hunter'], secondary: 'Resolve', secondaryRunes: ['Bone Plating', 'Overgrowth'] }
+  Irelia: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsRanged: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Teemo", "Quinn", "Jayce", "Kennen", "Vayne"] },
+    vsBurst: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Armor"], into: ["Riven", "Renekton", "Pantheon"] }
   },
-  Yasuo: {
-    standard: { keystone: 'Lethal Tempo', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Second Wind', 'Overgrowth'] },
-    vsMelee: { keystone: 'Conqueror', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Last Stand'], secondary: 'Resolve', secondaryRunes: ['Bone Plating', 'Overgrowth'] }
+  Jax: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsAA: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Tryndamere", "Yasuo", "Yone", "Irelia", "Fiora"] },
+    vsAP: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Conditioning"], shards: ["Attack Speed", "Adaptive", "MR"], into: ["Mordekaiser", "Kennen", "Rumble", "Vladimir", "Teemo"] }
   },
-  
-  // ADC
-  Jinx: {
-    standard: { keystone: 'Lethal Tempo', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Coup de Grace'], secondary: 'Domination', secondaryRunes: ['Taste of Blood', 'Treasure Hunter'] },
-    vsAssassin: { keystone: 'Lethal Tempo', primary: 'Precision', runes: ['Triumph', 'Legend: Bloodline', 'Coup de Grace'], secondary: 'Resolve', secondaryRunes: ['Bone Plating', 'Overgrowth'] }
+  Jayce: {
+    default: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAllIn: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Nimbus Cloak", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Riven", "Irelia", "Camille", "Wukong"] }
+  },
+  Kayle: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsPoke: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Teemo", "Jayce", "Quinn"] }
+  },
+  Kennen: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAllIn: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Unflinching"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Irelia", "Riven", "Camille"] }
+  },
+  Kled: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Malphite: {
+    default: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Demolish", "Conditioning", "Overgrowth"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Armor", "Armor"] },
+    vsAP: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Conditioning"], shards: ["Adaptive", "Adaptive", "MR"], into: ["Teemo", "Kennen", "Rumble", "Vladimir"] }
+  },
+  Mordekaiser: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsRanged: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Nimbus Cloak", "Celerity", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Movement Speed", "Health"], into: ["Vayne", "Quinn", "Jayce", "Teemo"] }
+  },
+  Nasus: {
+    default: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Ability Haste", "Adaptive", "Health"] },
+    vsPoke: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Revitalize"], shards: ["Ability Haste", "Adaptive", "Armor"], into: ["Teemo", "Quinn", "Jayce", "Vayne", "Kennen"] }
+  },
+  Olaf: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Ornn: {
+    default: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Demolish", "Conditioning", "Overgrowth"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Armor", "Health"] }
+  },
+  Pantheon: {
+    default: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Armor"] },
+    vsRanged: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Teemo", "Quinn", "Jayce"] }
+  },
+  Poppy: {
+    default: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Shield Bash", "Bone Plating", "Overgrowth"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Armor", "Health"] }
+  },
+  Quinn: {
+    default: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Nimbus Cloak", "Celerity", "Gathering Storm"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsTanks: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Cut Down"], secondary: "Sorcery", secondaryRunes: ["Celerity", "Gathering Storm"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Malphite", "Ornn", "Sion"] }
+  },
+  Renekton: {
+    default: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsTank: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Malphite", "Ornn", "Sion", "Cho'Gath"] }
+  },
+  Riven: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Ability Haste", "Adaptive", "Health"] },
+    vsSquishies: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Ability Haste", "Adaptive", "Health"], into: ["Jayce", "Quinn", "Teemo", "Kayle"] }
+  },
+  Rumble: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Sett: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsPoke: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Teemo", "Quinn", "Jayce", "Kennen", "Vayne"] }
+  },
+  Shen: {
+    default: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Shield Bash", "Second Wind", "Overgrowth"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Attack Speed", "Armor", "Health"] }
+  },
+  Singed: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Sion: {
+    default: { keystone: "Grasp of the Undying", primary: "Resolve", primaryRunes: ["Demolish", "Second Wind", "Overgrowth"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Armor", "Health"] }
+  },
+  Teemo: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAllIn: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Irelia", "Riven", "Camille", "Wukong"] }
+  },
+  Tryndamere: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsRanged: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Teemo", "Quinn", "Jayce", "Vayne", "Kennen"] }
+  },
+  Urgot: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] }
   },
   Vayne: {
-    standard: { keystone: 'Lethal Tempo', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Coup de Grace'], secondary: 'Domination', secondaryRunes: ['Taste of Blood', 'Treasure Hunter'] },
-    pta: { keystone: 'Press the Attack', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Cut Down'], secondary: 'Domination', secondaryRunes: ['Taste of Blood', 'Treasure Hunter'] }
+    default: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Vladimir: {
+    default: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Nimbus Cloak", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Volibear: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Wukong: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Yasuo: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsRanged: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Quinn", "Jayce", "Kennen"] }
+  },
+  Yone: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Yorick: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Demolish"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+
+  // ============ JUNGLE ============
+  Amumu: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Conditioning", "Unflinching"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Attack Speed", "Armor", "Health"] }
+  },
+  Diana: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsSquishy: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Elise: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Relentless Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Coup de Grace"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Evelynn: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Graves: {
+    default: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Hecarim: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsSquishy: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Ivern: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Inspiration", secondaryRunes: ["Future's Market", "Cosmic Insight"], shards: ["Ability Haste", "Adaptive", "Health"] }
+  },
+  JarvanIV: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Karthus: {
+    default: { keystone: "Dark Harvest", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Kayn: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] },
+    shadowAssassin: { keystone: "Dark Harvest", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  KhaZix: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Kindred: {
+    default: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  LeeSin: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsSquishy: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Lillia: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Sorcery", secondaryRunes: ["Celerity", "Waterwalking"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  MasterYi: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsHeavyCC: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Conditioning", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Nidalee: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Relentless Hunter"], secondary: "Sorcery", secondaryRunes: ["Waterwalking", "Absolute Focus"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Nocturne: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Nunu: {
+    default: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Nimbus Cloak", "Celerity", "Waterwalking"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Ability Haste", "Adaptive", "Health"] }
+  },
+  Rammus: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Conditioning", "Unflinching"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Attack Speed", "Armor", "Health"] }
+  },
+  RekSai: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Rengar: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Adaptive", "Adaptive", "Health"] },
+    bruiser: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Sejuani: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Conditioning", "Unflinching"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Attack Speed", "Armor", "Health"] }
+  },
+  Shaco: {
+    default: { keystone: "Hail of Blades", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Adaptive", "Adaptive", "Health"] },
+    AP: { keystone: "Dark Harvest", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Transcendence", "Gathering Storm"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Shyvana: {
+    default: { keystone: "Dark Harvest", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Adaptive", "Adaptive", "Health"] },
+    AD: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Conditioning", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Skarner: {
+    default: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Nimbus Cloak", "Celerity", "Waterwalking"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Taliyah: {
+    default: { keystone: "Dark Harvest", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Relentless Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Waterwalking"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Trundle: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Conditioning", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Udyr: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Conditioning", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Vi: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Viego: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Warwick: {
+    default: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Conditioning", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  XinZhao: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Domination", secondaryRunes: ["Sudden Impact", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Zac: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Conditioning", "Revitalize"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+
+  // ============ MID LANE ============
+  Ahri: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAssassin: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Ultimate Hunter"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Zed", "Talon", "Yasuo", "Yone"] }
+  },
+  Akali: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Ultimate Hunter"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsRanged: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Coup de Grace"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Syndra", "Orianna", "Viktor", "Azir"] }
+  },
+  Anivia: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAssassin: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Ultimate Hunter"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Zed", "Talon", "Fizz", "Katarina"] }
+  },
+  Annie: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Aurelion: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Azir: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Presence of Mind", "Legend: Alacrity", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsAssassin: { keystone: "Hail of Blades", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Attack Speed", "Adaptive", "Armor"], into: ["Zed", "Talon", "Fizz"] }
+  },
+  Cassiopeia: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Presence of Mind", "Legend: Tenacity", "Last Stand"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Corki: {
+    default: { keystone: "First Strike", primary: "Inspiration", primaryRunes: ["Magical Footwear", "Biscuit Delivery", "Cosmic Insight"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Ekko: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Transcendence", "Gathering Storm"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Fizz: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Transcendence", "Scorch"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsHard: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Ultimate Hunter"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Bone Plating"], shards: ["Adaptive", "Adaptive", "MR"], into: ["Lissandra", "Galio", "Malzahar"] }
+  },
+  Galio: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Shield Bash", "Conditioning", "Unflinching"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Irelia: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Kassadin: {
+    default: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Presence of Mind", "Legend: Tenacity", "Coup de Grace"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAP: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Presence of Mind", "Legend: Tenacity", "Coup de Grace"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "MR"], into: ["Syndra", "Orianna", "Vex"] }
+  },
+  Katarina: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsSquishies: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Lux", "Xerath", "Vel'Koz"] }
+  },
+  LeBlanc: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Transcendence", "Scorch"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Lissandra: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Lux: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Malzahar: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Neeko: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Orianna: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Qiyana: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Transcendence", "Scorch"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Ryze: {
+    default: { keystone: "Phase Rush", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Precision", secondaryRunes: ["Presence of Mind", "Last Stand"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Syndra: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Sylas: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAD: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Zed", "Talon", "Qiyana", "Yasuo"] }
+  },
+  Taliyah: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Relentless Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Talon: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Transcendence", "Scorch"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  TwistedFate: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Veigar: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  VelKoz: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Vex: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Viktor: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsAssassin: { keystone: "First Strike", primary: "Inspiration", primaryRunes: ["Magical Footwear", "Biscuit Delivery", "Cosmic Insight"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Armor"], into: ["Zed", "Talon", "Fizz", "Katarina"] }
+  },
+  Xerath: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Yasuo: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsRanged: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Azir", "Viktor", "Orianna", "Syndra", "Lux"] }
+  },
+  Yone: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Zed: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Ultimate Hunter"], secondary: "Sorcery", secondaryRunes: ["Transcendence", "Scorch"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsHard: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Tenacity", "Last Stand"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Malzahar", "Lissandra", "Galio", "Pantheon"] }
+  },
+  Ziggs: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Zoe: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Eyeball Collection", "Treasure Hunter"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Transcendence"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+
+  // ============ ADC ============
+  Aphelios: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Ashe: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Cut Down"], secondary: "Inspiration", secondaryRunes: ["Magical Footwear", "Approach Velocity"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Caitlyn: {
+    default: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Attack Speed", "Adaptive", "Health"] }
   },
   Draven: {
-    standard: { keystone: 'Press the Attack', primary: 'Precision', runes: ['Triumph', 'Legend: Alacrity', 'Coup de Grace'], secondary: 'Domination', secondaryRunes: ['Taste of Blood', 'Eyeball Collection'] },
-    hob: { keystone: 'Hail of Blades', primary: 'Domination', runes: ['Taste of Blood', 'Eyeball Collection', 'Treasure Hunter'], secondary: 'Precision', secondaryRunes: ['Triumph', 'Legend: Bloodline'] }
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Last Stand"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
   },
-  
-  // Support
-  Thresh: {
-    standard: { keystone: 'Aftershock', primary: 'Resolve', runes: ['Font of Life', 'Bone Plating', 'Unflinching'], secondary: 'Inspiration', secondaryRunes: ['Hextech Flashtraption', 'Cosmic Insight'] },
-    guardian: { keystone: 'Guardian', primary: 'Resolve', runes: ['Font of Life', 'Bone Plating', 'Unflinching'], secondary: 'Inspiration', secondaryRunes: ['Biscuit Delivery', 'Cosmic Insight'] }
+  Ezreal: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Coup de Grace"], secondary: "Inspiration", secondaryRunes: ["Magical Footwear", "Biscuit Delivery"], shards: ["Adaptive", "Adaptive", "Health"] },
+    vsHard: { keystone: "First Strike", primary: "Inspiration", primaryRunes: ["Magical Footwear", "Biscuit Delivery", "Cosmic Insight"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Bloodline"], shards: ["Adaptive", "Adaptive", "Health"], into: ["Draven", "Lucian", "Samira"] }
   },
-  Lulu: {
-    standard: { keystone: 'Summon Aery', primary: 'Sorcery', runes: ['Manaflow Band', 'Transcendence', 'Scorch'], secondary: 'Resolve', secondaryRunes: ['Revitalize', 'Bone Plating'] },
-    scaling: { keystone: 'Summon Aery', primary: 'Sorcery', runes: ['Manaflow Band', 'Transcendence', 'Gathering Storm'], secondary: 'Resolve', secondaryRunes: ['Revitalize', 'Second Wind'] }
+  Jhin: {
+    default: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Jinx: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsKillLane: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Coup de Grace"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Draven", "Lucian", "Samira", "Kalista"] }
+  },
+  KaiSa: {
+    default: { keystone: "Hail of Blades", primary: "Domination", primaryRunes: ["Taste of Blood", "Eyeball Collection", "Treasure Hunter"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Kalista: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  KogMaw: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Cut Down"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Lucian: {
+    default: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  MissFortune: {
+    default: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Gathering Storm"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Nilah: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Last Stand"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Samira: {
+    default: { keystone: "Conqueror", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Last Stand"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Senna: {
+    default: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Cut Down"], secondary: "Inspiration", secondaryRunes: ["Magical Footwear", "Approach Velocity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Sivir: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Coup de Grace"], secondary: "Inspiration", secondaryRunes: ["Magical Footwear", "Biscuit Delivery"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Tristana: {
+    default: { keystone: "Press the Attack", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Twitch: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Cut Down"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Varus: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Manaflow Band", "Gathering Storm"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Vayne: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Domination", secondaryRunes: ["Taste of Blood", "Treasure Hunter"], shards: ["Attack Speed", "Adaptive", "Health"] },
+    vsHard: { keystone: "Fleet Footwork", primary: "Precision", primaryRunes: ["Triumph", "Legend: Bloodline", "Coup de Grace"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Overgrowth"], shards: ["Attack Speed", "Adaptive", "Health"], into: ["Draven", "Caitlyn", "Lucian", "MissFortune"] }
+  },
+  Xayah: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+  Zeri: {
+    default: { keystone: "Lethal Tempo", primary: "Precision", primaryRunes: ["Triumph", "Legend: Alacrity", "Coup de Grace"], secondary: "Sorcery", secondaryRunes: ["Absolute Focus", "Gathering Storm"], shards: ["Attack Speed", "Adaptive", "Health"] }
+  },
+
+  // ============ SUPPORT ============
+  Alistar: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Armor", "Health"] }
+  },
+  Bard: {
+    default: { keystone: "Guardian", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Relentless Hunter"], shards: ["Ability Haste", "Adaptive", "Health"] }
+  },
+  Blitzcrank: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Armor", "Health"] }
+  },
+  Brand: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Braum: {
+    default: { keystone: "Guardian", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Armor", "Health"] }
+  },
+  Janna: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Celerity", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Karma: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] }
   },
   Leona: {
-    standard: { keystone: 'Aftershock', primary: 'Resolve', runes: ['Font of Life', 'Bone Plating', 'Unflinching'], secondary: 'Hextech', secondaryRunes: ['Hextech Flashtraption', 'Cosmic Insight'] },
-    aggressive: { keystone: 'Aftershock', primary: 'Resolve', runes: ['Demolish', 'Bone Plating', 'Unflinching'], secondary: 'Precision', secondaryRunes: ['Triumph', 'Legend: Tenacity'] }
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Armor", "Health"] },
+    vsPoke: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Second Wind", "Overgrowth"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Time Warp Tonic"], shards: ["Ability Haste", "Armor", "Health"], into: ["Lux", "Xerath", "Vel'Koz", "Senna"] }
+  },
+  Lulu: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Lux: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Milio: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Morgana: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Nami: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Nautilus: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Armor", "Health"] }
+  },
+  Pyke: {
+    default: { keystone: "Hail of Blades", primary: "Domination", primaryRunes: ["Cheap Shot", "Zombie Ward", "Ultimate Hunter"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Unflinching"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Rakan: {
+    default: { keystone: "Guardian", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Adaptive", "Health"] }
+  },
+  Rell: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Conditioning", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Armor", "Health"] }
+  },
+  Renata: {
+    default: { keystone: "Guardian", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Revitalize"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Adaptive", "Health"] }
+  },
+  Senna: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Alacrity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Seraphine: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Bone Plating", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Sona: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Soraka: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Swain: {
+    default: { keystone: "Electrocute", primary: "Domination", primaryRunes: ["Cheap Shot", "Zombie Ward", "Ultimate Hunter"], secondary: "Precision", secondaryRunes: ["Presence of Mind", "Legend: Tenacity"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  TahmKench: {
+    default: { keystone: "Guardian", primary: "Resolve", primaryRunes: ["Font of Life", "Conditioning", "Unflinching"], secondary: "Precision", secondaryRunes: ["Triumph", "Legend: Tenacity"], shards: ["Ability Haste", "Armor", "Health"] }
+  },
+  Taric: {
+    default: { keystone: "Guardian", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Armor", "Health"] }
+  },
+  Thresh: {
+    default: { keystone: "Aftershock", primary: "Resolve", primaryRunes: ["Font of Life", "Bone Plating", "Unflinching"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Adaptive", "Health"] },
+    vsPoke: { keystone: "Guardian", primary: "Resolve", primaryRunes: ["Font of Life", "Second Wind", "Revitalize"], secondary: "Inspiration", secondaryRunes: ["Biscuit Delivery", "Cosmic Insight"], shards: ["Ability Haste", "Adaptive", "Health"], into: ["Lux", "Xerath", "Vel'Koz", "Brand"] }
+  },
+  VelKoz: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Xerath: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Yuumi: {
+    default: { keystone: "Summon Aery", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Gathering Storm"], secondary: "Resolve", secondaryRunes: ["Second Wind", "Revitalize"], shards: ["Adaptive", "Adaptive", "Health"] }
+  },
+  Zyra: {
+    default: { keystone: "Arcane Comet", primary: "Sorcery", primaryRunes: ["Manaflow Band", "Transcendence", "Scorch"], secondary: "Domination", secondaryRunes: ["Cheap Shot", "Treasure Hunter"], shards: ["Adaptive", "Adaptive", "Health"] }
   }
+};
+
+// ==================== RUNE PAGE GENERATOR ====================
+export const generateRunePage = (championId, enemyChampionId, role, traits, enemyTraits) => {
+  // Get champion name (handle both id and name input)
+  const champName = championId?.replace(/[^a-zA-Z]/g, '') || 'Unknown';
+  
+  // Try to find specific champion preset
+  const preset = championRunePresets[champName];
+  
+  if (preset) {
+    // Check for matchup-specific pages
+    if (enemyChampionId) {
+      const enemyName = enemyChampionId?.replace(/[^a-zA-Z]/g, '') || '';
+      
+      // Check each variant for this champion
+      for (const [variant, page] of Object.entries(preset)) {
+        if (variant !== 'default' && page.into && page.into.includes(enemyName)) {
+          return {
+            primaryTree: page.primary,
+            keystone: page.keystone,
+            primaryRunes: page.primaryRunes,
+            secondaryTree: page.secondary,
+            secondaryRunes: page.secondaryRunes,
+            statShards: page.shards,
+            matchupSpecific: true,
+            matchupType: variant,
+            reasoning: {
+              keystone: `${page.keystone} is optimal vs ${enemyName} - ${getKeystoneReasoning(page.keystone)}`,
+              secondary: `${page.secondary} tree provides ${getSecondaryReasoning(page.secondary, page.secondaryRunes)}`
+            }
+          };
+        }
+      }
+    }
+    
+    // Return default if no matchup-specific found
+    const defaultPage = preset.default;
+    if (defaultPage) {
+      return {
+        primaryTree: defaultPage.primary,
+        keystone: defaultPage.keystone,
+        primaryRunes: defaultPage.primaryRunes,
+        secondaryTree: defaultPage.secondary,
+        secondaryRunes: defaultPage.secondaryRunes,
+        statShards: defaultPage.shards,
+        matchupSpecific: false,
+        reasoning: {
+          keystone: `${defaultPage.keystone} - ${getKeystoneReasoning(defaultPage.keystone)}`,
+          secondary: `${defaultPage.secondary} - ${getSecondaryReasoning(defaultPage.secondary, defaultPage.secondaryRunes)}`
+        }
+      };
+    }
+  }
+  
+  // Fallback: Generate based on traits/role
+  return generateFallbackPage(role, traits, enemyTraits);
+};
+
+// Fallback page generation for champions without presets
+const generateFallbackPage = (role, traits, enemyTraits) => {
+  const isPokeMatchup = enemyTraits?.range === 'ranged' && traits?.range === 'melee';
+  const isBurstMatchup = enemyTraits?.burst >= 4;
+  
+  let page = {
+    primaryTree: 'Precision',
+    keystone: 'Conqueror',
+    primaryRunes: ['Triumph', 'Legend: Tenacity', 'Last Stand'],
+    secondaryTree: 'Resolve',
+    secondaryRunes: ['Second Wind', 'Overgrowth'],
+    statShards: ['Adaptive', 'Adaptive', 'Health'],
+    matchupSpecific: false
+  };
+  
+  // Adjust based on role
+  if (role === 'ADC') {
+    page.keystone = 'Lethal Tempo';
+    page.primaryRunes = ['Triumph', 'Legend: Alacrity', 'Coup de Grace'];
+    page.secondaryTree = 'Sorcery';
+    page.secondaryRunes = ['Absolute Focus', 'Gathering Storm'];
+    page.statShards = ['Attack Speed', 'Adaptive', 'Health'];
+  } else if (role === 'Support') {
+    if (traits?.tankiness >= 3 || traits?.cc >= 3) {
+      page.primaryTree = 'Resolve';
+      page.keystone = 'Aftershock';
+      page.primaryRunes = ['Font of Life', 'Bone Plating', 'Unflinching'];
+      page.secondaryTree = 'Inspiration';
+      page.secondaryRunes = ['Biscuit Delivery', 'Cosmic Insight'];
+    } else {
+      page.primaryTree = 'Sorcery';
+      page.keystone = 'Summon Aery';
+      page.primaryRunes = ['Manaflow Band', 'Transcendence', 'Gathering Storm'];
+      page.secondaryRunes = ['Revitalize', 'Bone Plating'];
+    }
+  } else if (role === 'Jungle') {
+    if (traits?.burst >= 4) {
+      page.primaryTree = 'Domination';
+      page.keystone = 'Electrocute';
+      page.primaryRunes = ['Sudden Impact', 'Eyeball Collection', 'Treasure Hunter'];
+      page.secondaryTree = 'Precision';
+      page.secondaryRunes = ['Triumph', 'Legend: Tenacity'];
+    }
+  } else if (role === 'Mid') {
+    if (traits?.damage === 'magic' && traits?.burst >= 3) {
+      page.primaryTree = 'Domination';
+      page.keystone = 'Electrocute';
+      page.primaryRunes = ['Taste of Blood', 'Eyeball Collection', 'Ultimate Hunter'];
+      page.secondaryTree = 'Sorcery';
+      page.secondaryRunes = ['Manaflow Band', 'Transcendence'];
+    }
+  }
+  
+  // Adjust for matchups
+  if (isPokeMatchup) {
+    page.secondaryTree = 'Resolve';
+    page.secondaryRunes = ['Second Wind', 'Overgrowth'];
+  }
+  if (isBurstMatchup) {
+    page.secondaryRunes = ['Bone Plating', 'Overgrowth'];
+  }
+  
+  page.reasoning = {
+    keystone: getKeystoneReasoning(page.keystone),
+    secondary: getSecondaryReasoning(page.secondaryTree, page.secondaryRunes)
+  };
+  
+  return page;
+};
+
+// Helper functions for reasoning
+const getKeystoneReasoning = (keystone) => {
+  const reasons = {
+    'Conqueror': 'Extended fights gain up to 54 AD + 8% healing at max stacks',
+    'Lethal Tempo': 'Attack speed stacking up to 90% + bonus range. Breaks AS cap.',
+    'Fleet Footwork': 'Sustain in lane with heals up to 100 + scaling. Good for poke lanes.',
+    'Press the Attack': 'Quick 3-hit burst with 8-12% damage amp for team follow-up',
+    'Electrocute': 'Burst combo deals 180 + 40% AD/25% AP at level 18',
+    'Dark Harvest': 'Scaling execute with infinite soul stacking for teamfights',
+    'Hail of Blades': '110% attack speed for 3 autos. Breaks AS cap for burst.',
+    'Summon Aery': 'Consistent poke/shield. 40 damage or 80 shield at level 18.',
+    'Arcane Comet': 'Poke damage 100 + scaling. CD reduced by hitting abilities.',
+    'Phase Rush': '40% MS + 75% slow resist for 3s. Great for kiting/chasing.',
+    'Grasp of the Undying': '4% max HP damage, 2% heal, +5 permanent HP per proc',
+    'Aftershock': '80 Armor/MR for 2.5s after CC. Perfect for engage tanks.',
+    'Guardian': 'Shield ally for 130 + scaling when they take damage',
+    'Glacial Augment': 'Zone control with 30% slow + 15% damage reduction',
+    'First Strike': '9% bonus true damage + gold generation on first hit'
+  };
+  return reasons[keystone] || 'Standard keystone for this champion';
+};
+
+const getSecondaryReasoning = (tree, runes) => {
+  if (tree === 'Resolve') {
+    if (runes?.includes('Second Wind')) return 'Sustain vs poke (3% missing HP heal after damage)';
+    if (runes?.includes('Bone Plating')) return 'Block 90-180 damage from burst trades';
+    return 'Defensive stats and sustain';
+  }
+  if (tree === 'Precision') return 'Triumph heals + Tenacity/Alacrity for combat';
+  if (tree === 'Domination') return 'Extra burst damage and utility from Hunter runes';
+  if (tree === 'Sorcery') return 'Ability haste and scaling from Transcendence/Gathering Storm';
+  if (tree === 'Inspiration') return 'Sustain from Biscuits + CDR from Cosmic Insight';
+  return 'Standard secondary for this matchup';
 };
 
 export default {
   runeMath,
   minorRuneMath,
-  generateRunePage,
-  championRunePresets
+  championRunePresets,
+  generateRunePage
 };

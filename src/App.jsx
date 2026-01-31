@@ -8,7 +8,7 @@ import { MathEngine, DataDragon } from './utils/api';
 import { generateMatchup, getAllMatchups, championTraits, getCounters, getStrongAgainst } from './data/matchupEngine';
 import { getChampionGuide, getAllGuides, guideStats } from './data/guidesEngine';
 import { roleImprovement, generalImprovement, rankGoals } from './data/improvement';
-import { runeMath, matchupRunes, roleRuneDefaults, getRecommendedRunes } from './data/runeSystem';
+import { runeMath, minorRuneMath, generateRunePage, championRunePresets } from './data/runeEngine';
 import { skillAssessment, learningPaths, practiceLibrary, vodReviewSystem, warmUpRoutines, mentalPerformance, rankCoaching, statsToTrack } from './data/coachingSystem';
 
 const VERSION = championsData.meta.version;
@@ -581,7 +581,7 @@ export default function App() {
               </Card>
               <Card title="Enemy Laner" icon="⚔️">
                 <select value={runeEnemy?.id || ''} onChange={(e) => setRuneEnemy(CHAMPIONS[e.target.value])} className="w-full bg-slate-700 rounded-xl px-4 py-3 border border-slate-600">
-                  <option value="">Select enemy champion...</option>
+                  <option value="">Select enemy champion (optional)...</option>
                   {Object.values(CHAMPIONS).sort((a, b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 {runeEnemy && <div className="mt-3 flex items-center gap-3"><ChampIcon id={runeEnemy.id} size={48} /><div><b>{runeEnemy.name}</b><div className="text-sm text-red-400">Enemy</div></div></div>}
@@ -589,69 +589,159 @@ export default function App() {
             </div>
 
             {/* Generated Rune Page */}
-            {selected && (
-              <Card title={`Recommended Runes: ${selected.name}${runeEnemy ? ` vs ${runeEnemy.name}` : ''}`} icon="🔮">
-                {(() => {
-                  const traits = championTraits[selected.id] || {};
-                  const enemyTraits = runeEnemy ? championTraits[runeEnemy.id] || {} : {};
-                  const page = generateRunePage(selected.id, runeEnemy?.id, selected.role, traits, enemyTraits);
-                  return (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h4 className="font-bold mb-3 text-lg text-yellow-400">Primary: {page.primaryTree}</h4>
-                          <div className="p-4 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-xl mb-3 border border-yellow-500/30">
+            {selected && (() => {
+              const traits = championTraits[selected.id] || {};
+              const enemyTraits = runeEnemy ? championTraits[runeEnemy.id] || {} : {};
+              const page = generateRunePage(selected.name, runeEnemy?.name, selected.role, traits, enemyTraits);
+              
+              if (!page || !page.keystone) {
+                return (
+                  <Card title="Rune Recommendation" icon="🔮">
+                    <div className="text-center text-slate-400 py-8">
+                      <div className="text-4xl mb-4">🔮</div>
+                      <p>Unable to generate rune page for {selected.name}.</p>
+                      <p className="text-sm mt-2">Try selecting a different champion.</p>
+                    </div>
+                  </Card>
+                );
+              }
+              
+              const keystoneData = runeMath[page.keystone?.replace(/\s+/g, '')] || runeMath[page.keystone] || {};
+              
+              return (
+                <Card title={`Recommended Runes: ${selected.name}${runeEnemy ? ` vs ${runeEnemy.name}` : ''}`} icon="🔮">
+                  {page.matchupSpecific && (
+                    <div className="mb-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg text-green-400 text-sm">
+                      ✓ Matchup-specific page: <b>{page.matchupType}</b> runes optimized for this matchup
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Primary Tree */}
+                    <div className="space-y-4">
+                      <h4 className="font-bold text-lg text-yellow-400">⬢ Primary: {page.primaryTree}</h4>
+                      
+                      {/* Keystone */}
+                      <div className="p-4 bg-gradient-to-br from-yellow-500/20 to-orange-500/10 rounded-xl border border-yellow-500/30">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 bg-yellow-500/30 rounded-full flex items-center justify-center text-2xl">⬡</div>
+                          <div>
                             <div className="font-bold text-xl text-yellow-400">{page.keystone}</div>
-                            <div className="text-sm text-slate-300 mt-2">{page.reasoning?.keystone}</div>
-                          </div>
-                          <div className="space-y-2">
-                            {page.primaryRunes.map((rune, i) => (
-                              <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/30 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-yellow-400" />{rune}</div>
-                            ))}
+                            <div className="text-xs text-yellow-400/70">Keystone</div>
                           </div>
                         </div>
-                        <div>
-                          <h4 className="font-bold mb-3 text-lg text-blue-400">Secondary: {page.secondaryTree}</h4>
-                          <div className="space-y-2 mb-4">
-                            {page.secondaryRunes.map((rune, i) => (
-                              <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/30 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-blue-400" />{rune}</div>
+                        {keystoneData.formula && (
+                          <div className="mt-3 p-2 bg-slate-800/50 rounded text-xs text-slate-300">
+                            <b>Formula:</b> {keystoneData.formula}
+                          </div>
+                        )}
+                        {keystoneData.math?.level18 && (
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                            {Object.entries(keystoneData.math.level18).map(([key, val]) => (
+                              <div key={key} className="p-1 bg-slate-700/50 rounded">
+                                <span className="text-slate-400">{key}:</span> <span className="text-green-400">{typeof val === 'object' ? JSON.stringify(val) : val}</span>
+                              </div>
                             ))}
                           </div>
-                          <div className="p-3 bg-blue-500/10 rounded-lg text-sm text-slate-300">{page.reasoning?.secondary}</div>
-                          <h4 className="font-bold mt-4 mb-2">Stat Shards</h4>
-                          <div className="flex gap-2">
-                            {page.statShards.map((shard, i) => (
-                              <span key={i} className="px-3 py-1 bg-slate-700/50 rounded-lg text-sm">{shard}</span>
-                            ))}
+                        )}
+                        {keystoneData.goldValue && (
+                          <div className="mt-2 text-xs text-yellow-400/80">💰 {keystoneData.goldValue}</div>
+                        )}
+                      </div>
+                      
+                      {/* Primary Runes */}
+                      <div className="space-y-2">
+                        {page.primaryRunes?.map((rune, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg">
+                            <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center text-sm">◇</div>
+                            <div>
+                              <div className="font-medium">{rune}</div>
+                              {minorRuneMath[rune?.replace(/[:\s]/g, '')] && (
+                                <div className="text-xs text-slate-400">{minorRuneMath[rune?.replace(/[:\s]/g, '')]?.effect}</div>
+                              )}
+                            </div>
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Secondary Tree + Shards */}
+                    <div className="space-y-4">
+                      <h4 className="font-bold text-lg text-blue-400">⬢ Secondary: {page.secondaryTree}</h4>
+                      
+                      {/* Secondary Runes */}
+                      <div className="space-y-2">
+                        {page.secondaryRunes?.map((rune, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg">
+                            <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-sm">◇</div>
+                            <div>
+                              <div className="font-medium">{rune}</div>
+                              {minorRuneMath[rune?.replace(/[:\s]/g, '')] && (
+                                <div className="text-xs text-slate-400">{minorRuneMath[rune?.replace(/[:\s]/g, '')]?.effect}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Reasoning */}
+                      <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                        <div className="text-xs text-blue-400 font-bold mb-1">Why this setup:</div>
+                        <div className="text-sm text-slate-300">{page.reasoning?.keystone}</div>
+                        <div className="text-sm text-slate-400 mt-1">{page.reasoning?.secondary}</div>
+                      </div>
+                      
+                      {/* Stat Shards */}
+                      <div>
+                        <h4 className="font-bold mb-2 text-purple-400">Stat Shards</h4>
+                        <div className="flex gap-2">
+                          {page.statShards?.map((shard, i) => (
+                            <div key={i} className="flex-1 p-2 bg-slate-700/50 rounded-lg text-center">
+                              <div className="text-xs text-slate-400">Row {i + 1}</div>
+                              <div className="text-sm font-medium text-purple-300">{shard}</div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  );
-                })()}
-              </Card>
-            )}
+                  </div>
+                </Card>
+              );
+            })()}
 
-            {/* Rune Math Reference */}
-            <Card title="Keystone Math & Analysis" icon="🧮">
+            {/* Keystone Math Reference */}
+            <Card title="Keystone Math & Calculations" icon="🧮">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(runeMath).slice(0, 9).map(([name, data]) => (
-                  <div key={name} className="p-4 bg-slate-700/30 rounded-xl">
-                    <div className="font-bold text-purple-400 mb-2">{name.replace(/([A-Z])/g, ' $1').trim()}</div>
+                {Object.entries(runeMath).map(([name, data]) => (
+                  <div key={name} className="p-4 bg-slate-700/30 rounded-xl hover:bg-slate-700/50 transition-colors">
+                    <div className="font-bold text-purple-400 mb-2">{data.name || name}</div>
                     <div className="text-xs text-slate-400 mb-2">{data.formula}</div>
-                    {data.math && (
-                      <div className="text-xs space-y-1">
-                        <div className="text-green-400">Level 1: {JSON.stringify(data.math.level1)}</div>
-                        <div className="text-yellow-400">Level 18: {JSON.stringify(data.math.level18)}</div>
+                    {data.math?.level18 && (
+                      <div className="text-xs space-y-1 mb-2">
+                        <div className="text-yellow-400 font-bold">Level 18:</div>
+                        <div className="grid grid-cols-2 gap-1">
+                          {Object.entries(data.math.level18).slice(0, 4).map(([key, val]) => (
+                            <div key={key} className="text-slate-300">
+                              {key}: <span className="text-green-400">{typeof val === 'object' ? JSON.stringify(val) : val}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    <div className="mt-2 text-xs text-slate-500">{data.goldValue}</div>
+                    {data.goldValue && <div className="text-xs text-yellow-400/70">💰 {data.goldValue}</div>}
+                    {data.bestFor && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {data.bestFor.slice(0, 3).map((use, i) => (
+                          <span key={i} className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded">{use}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </Card>
 
-            {/* Preset Rune Pages */}
+            {/* Quick Preset Pages */}
             <Card title="Quick Rune Pages" icon="📋">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(RUNE_PAGES).map(([key, page]) => (
@@ -669,27 +759,27 @@ export default function App() {
               <Card title={selectedRune.name} icon="📝">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-bold mb-3" style={{ color: RUNES[selectedRune.primary]?.color }}>Primary: {selectedRune.primary}</h4>
+                    <h4 className="font-bold mb-3" style={{ color: RUNES[selectedRune.primary]?.color || '#C8AA6E' }}>Primary: {selectedRune.primary}</h4>
                     <div className="p-3 bg-slate-700/30 rounded-xl mb-3">
                       <div className="font-bold text-purple-400">{selectedRune.keystone}</div>
-                      <div className="text-xs text-slate-400 mt-1">{RUNES[selectedRune.primary]?.keystones.find(k => k.name === selectedRune.keystone)?.description}</div>
+                      <div className="text-xs text-slate-400 mt-1">{RUNES[selectedRune.primary]?.keystones?.find(k => k.name === selectedRune.keystone)?.description || 'Keystone ability'}</div>
                     </div>
                     <div className="space-y-2">
-                      {selectedRune.primaryRunes.map((rune, i) => (
+                      {selectedRune.primaryRunes?.map((rune, i) => (
                         <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/20 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-purple-400" />{rune}</div>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <h4 className="font-bold mb-3" style={{ color: RUNES[selectedRune.secondary]?.color }}>Secondary: {selectedRune.secondary}</h4>
+                    <h4 className="font-bold mb-3" style={{ color: RUNES[selectedRune.secondary]?.color || '#6B8BE8' }}>Secondary: {selectedRune.secondary}</h4>
                     <div className="space-y-2 mb-4">
-                      {selectedRune.secondaryRunes.map((rune, i) => (
+                      {selectedRune.secondaryRunes?.map((rune, i) => (
                         <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/20 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-blue-400" />{rune}</div>
                       ))}
                     </div>
                     <h4 className="font-bold mb-2">Stat Shards</h4>
                     <div className="flex gap-2">
-                      {selectedRune.statShards.map((shard, i) => (
+                      {selectedRune.statShards?.map((shard, i) => (
                         <span key={i} className="px-2 py-1 bg-slate-700/30 rounded text-xs">{shard}</span>
                       ))}
                     </div>
