@@ -7,6 +7,9 @@ import runesData from './data/runes.json';
 import { MathEngine, DataDragon } from './utils/api';
 import { generateMatchup, getAllMatchups, championTraits, getCounters, getStrongAgainst } from './data/matchupEngine';
 import { getChampionGuide, getAllGuides, guideStats } from './data/guidesEngine';
+import { roleImprovement, generalImprovement, rankGoals } from './data/improvement';
+import { runeMath, matchupRunes, roleRuneDefaults, getRecommendedRunes } from './data/runeSystem';
+import { skillAssessment, learningPaths, practiceLibrary, vodReviewSystem, warmUpRoutines, mentalPerformance, rankCoaching, statsToTrack } from './data/coachingSystem';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -18,7 +21,6 @@ const RUNES = runesData.trees;
 const RUNE_PAGES = runesData.recommendedPages;
 const JUNGLE_PATHS = guidesData.junglePaths;
 const PRACTICE = guidesData.practiceDrills;
-const VOD_CHECKLIST = guidesData.improvementChecklist;
 const WAVE_MGMT = guidesData.waveManagement;
 
 const TIER_COLORS = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#6B7280', D: '#DC2626' };
@@ -87,6 +89,9 @@ export default function App() {
   ]);
   const [newGoal, setNewGoal] = useState('');
   const [checkedItems, setCheckedItems] = useState({});
+  const [improveRole, setImproveRole] = useState('Jungle');
+  const [runeEnemy, setRuneEnemy] = useState(null);
+  const [coachingTab, setCoachingTab] = useState('assessment');
 
   const filteredChamps = useMemo(() =>
     Object.values(CHAMPIONS).map(c => ({ ...c, ...getChampMeta(c) }))
@@ -185,6 +190,7 @@ export default function App() {
               <Tab active={tab === 'tracker'} onClick={() => setTab('tracker')} icon="👁️" label="Tracker" />
               <Tab active={tab === 'practice'} onClick={() => setTab('practice')} icon="🎯" label="Practice" />
               <Tab active={tab === 'improve'} onClick={() => setTab('improve')} icon="📈" label="Improve" />
+              <Tab active={tab === 'coaching'} onClick={() => setTab('coaching')} icon="🏆" label="Coaching" />
             </div>
           </div>
         </div>
@@ -563,56 +569,134 @@ export default function App() {
 
         {/* RUNES TAB */}
         {tab === 'runes' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <Card title="Rune Pages" icon="🔮">
-                <div className="space-y-2">
-                  {Object.entries(RUNE_PAGES).map(([key, page]) => (
-                    <button key={key} onClick={() => setSelectedRune(page)} className={`w-full text-left p-3 rounded-xl transition-all ${selectedRune === page ? 'bg-purple-600/30 border border-purple-500' : 'bg-slate-700/30 hover:bg-slate-700/50 border border-transparent'}`}>
-                      <div className="font-bold text-sm">{page.name}</div>
-                      <div className="text-xs text-slate-400">{page.keystone}</div>
-                    </button>
-                  ))}
-                </div>
+          <div className="space-y-6">
+            {/* Champion Selector for Matchup Runes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card title="Your Champion" icon="🎮">
+                <select value={selected?.id || ''} onChange={(e) => setSelected(CHAMPIONS[e.target.value])} className="w-full bg-slate-700 rounded-xl px-4 py-3 border border-slate-600">
+                  <option value="">Select your champion...</option>
+                  {Object.values(CHAMPIONS).sort((a, b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                {selected && <div className="mt-3 flex items-center gap-3"><ChampIcon id={selected.id} size={48} /><div><b>{selected.name}</b><div className="text-sm text-slate-400">{selected.role}</div></div></div>}
+              </Card>
+              <Card title="Enemy Laner" icon="⚔️">
+                <select value={runeEnemy?.id || ''} onChange={(e) => setRuneEnemy(CHAMPIONS[e.target.value])} className="w-full bg-slate-700 rounded-xl px-4 py-3 border border-slate-600">
+                  <option value="">Select enemy champion...</option>
+                  {Object.values(CHAMPIONS).sort((a, b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                {runeEnemy && <div className="mt-3 flex items-center gap-3"><ChampIcon id={runeEnemy.id} size={48} /><div><b>{runeEnemy.name}</b><div className="text-sm text-red-400">Enemy</div></div></div>}
               </Card>
             </div>
-            <div className="lg:col-span-2">
-              {selectedRune && (
-                <Card title={selectedRune.name} icon="📝">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-bold mb-3 text-lg" style={{ color: RUNES[selectedRune.primary]?.color }}>Primary: {selectedRune.primary}</h4>
-                      <div className="p-3 bg-slate-700/30 rounded-xl mb-3">
-                        <div className="font-bold text-purple-400">{selectedRune.keystone}</div>
-                        <div className="text-xs text-slate-400 mt-1">{RUNES[selectedRune.primary]?.keystones.find(k => k.name === selectedRune.keystone)?.description}</div>
-                      </div>
-                      <div className="space-y-2">
-                        {selectedRune.primaryRunes.map((rune, i) => (
-                          <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/20 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-purple-400" />{rune}</div>
-                        ))}
+
+            {/* Generated Rune Page */}
+            {selected && (
+              <Card title={`Recommended Runes: ${selected.name}${runeEnemy ? ` vs ${runeEnemy.name}` : ''}`} icon="🔮">
+                {(() => {
+                  const traits = championTraits[selected.id] || {};
+                  const enemyTraits = runeEnemy ? championTraits[runeEnemy.id] || {} : {};
+                  const page = generateRunePage(selected.id, runeEnemy?.id, selected.role, traits, enemyTraits);
+                  return (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-bold mb-3 text-lg text-yellow-400">Primary: {page.primaryTree}</h4>
+                          <div className="p-4 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-xl mb-3 border border-yellow-500/30">
+                            <div className="font-bold text-xl text-yellow-400">{page.keystone}</div>
+                            <div className="text-sm text-slate-300 mt-2">{page.reasoning?.keystone}</div>
+                          </div>
+                          <div className="space-y-2">
+                            {page.primaryRunes.map((rune, i) => (
+                              <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/30 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-yellow-400" />{rune}</div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-bold mb-3 text-lg text-blue-400">Secondary: {page.secondaryTree}</h4>
+                          <div className="space-y-2 mb-4">
+                            {page.secondaryRunes.map((rune, i) => (
+                              <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/30 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-blue-400" />{rune}</div>
+                            ))}
+                          </div>
+                          <div className="p-3 bg-blue-500/10 rounded-lg text-sm text-slate-300">{page.reasoning?.secondary}</div>
+                          <h4 className="font-bold mt-4 mb-2">Stat Shards</h4>
+                          <div className="flex gap-2">
+                            {page.statShards.map((shard, i) => (
+                              <span key={i} className="px-3 py-1 bg-slate-700/50 rounded-lg text-sm">{shard}</span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold mb-3 text-lg" style={{ color: RUNES[selectedRune.secondary]?.color }}>Secondary: {selectedRune.secondary}</h4>
-                      <div className="space-y-2 mb-4">
-                        {selectedRune.secondaryRunes.map((rune, i) => (
-                          <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/20 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-blue-400" />{rune}</div>
-                        ))}
+                  );
+                })()}
+              </Card>
+            )}
+
+            {/* Rune Math Reference */}
+            <Card title="Keystone Math & Analysis" icon="🧮">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(runeMath).slice(0, 9).map(([name, data]) => (
+                  <div key={name} className="p-4 bg-slate-700/30 rounded-xl">
+                    <div className="font-bold text-purple-400 mb-2">{name.replace(/([A-Z])/g, ' $1').trim()}</div>
+                    <div className="text-xs text-slate-400 mb-2">{data.formula}</div>
+                    {data.math && (
+                      <div className="text-xs space-y-1">
+                        <div className="text-green-400">Level 1: {JSON.stringify(data.math.level1)}</div>
+                        <div className="text-yellow-400">Level 18: {JSON.stringify(data.math.level18)}</div>
                       </div>
-                      <h4 className="font-bold mb-2">Stat Shards</h4>
-                      <div className="flex gap-2">
-                        {selectedRune.statShards.map((shard, i) => (
-                          <span key={i} className="px-2 py-1 bg-slate-700/30 rounded text-xs">{shard}</span>
-                        ))}
-                      </div>
+                    )}
+                    <div className="mt-2 text-xs text-slate-500">{data.goldValue}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Preset Rune Pages */}
+            <Card title="Quick Rune Pages" icon="📋">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(RUNE_PAGES).map(([key, page]) => (
+                  <button key={key} onClick={() => setSelectedRune(page)} className={`text-left p-4 rounded-xl transition-all ${selectedRune === page ? 'bg-purple-600/30 border-2 border-purple-500' : 'bg-slate-700/30 hover:bg-slate-700/50 border border-slate-600'}`}>
+                    <div className="font-bold">{page.name}</div>
+                    <div className="text-sm text-purple-400">{page.keystone}</div>
+                    <div className="text-xs text-slate-400 mt-1">{page.primary} + {page.secondary}</div>
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Selected Preset Details */}
+            {selectedRune && (
+              <Card title={selectedRune.name} icon="📝">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-bold mb-3" style={{ color: RUNES[selectedRune.primary]?.color }}>Primary: {selectedRune.primary}</h4>
+                    <div className="p-3 bg-slate-700/30 rounded-xl mb-3">
+                      <div className="font-bold text-purple-400">{selectedRune.keystone}</div>
+                      <div className="text-xs text-slate-400 mt-1">{RUNES[selectedRune.primary]?.keystones.find(k => k.name === selectedRune.keystone)?.description}</div>
+                    </div>
+                    <div className="space-y-2">
+                      {selectedRune.primaryRunes.map((rune, i) => (
+                        <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/20 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-purple-400" />{rune}</div>
+                      ))}
                     </div>
                   </div>
-                  <div className="mt-6 pt-4 border-t border-slate-700">
-                    <div className="text-sm text-slate-400">Best for: <span className="text-white">{selectedRune.bestFor?.join(', ')}</span></div>
+                  <div>
+                    <h4 className="font-bold mb-3" style={{ color: RUNES[selectedRune.secondary]?.color }}>Secondary: {selectedRune.secondary}</h4>
+                    <div className="space-y-2 mb-4">
+                      {selectedRune.secondaryRunes.map((rune, i) => (
+                        <div key={i} className="flex items-center gap-2 p-2 bg-slate-700/20 rounded-lg text-sm"><span className="w-2 h-2 rounded-full bg-blue-400" />{rune}</div>
+                      ))}
+                    </div>
+                    <h4 className="font-bold mb-2">Stat Shards</h4>
+                    <div className="flex gap-2">
+                      {selectedRune.statShards.map((shard, i) => (
+                        <span key={i} className="px-2 py-1 bg-slate-700/30 rounded text-xs">{shard}</span>
+                      ))}
+                    </div>
                   </div>
-                </Card>
-              )}
-            </div>
+                </div>
+              </Card>
+            )}
           </div>
         )}
 
@@ -801,26 +885,234 @@ export default function App() {
 
         {/* IMPROVE TAB */}
         {tab === 'improve' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <Card title="VOD Review Checklist" icon="📋">
-                {Object.entries(VOD_CHECKLIST).map(([category, items]) => (
-                  <div key={category} className="mb-4">
-                    <h4 className="font-bold text-purple-400 capitalize mb-2">{category}</h4>
+          <div className="space-y-6">
+            {/* Role Selector */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {Object.entries(roleImprovement).map(([key, role]) => (
+                <button
+                  key={key}
+                  onClick={() => setImproveRole(key)}
+                  className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                    improveRole === key 
+                      ? 'bg-purple-600 text-white scale-105' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  }`}
+                >
+                  {role.icon} {role.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Role Description */}
+            <Card className="text-center">
+              <div className="text-4xl mb-2">{roleImprovement[improveRole].icon}</div>
+              <h2 className="text-2xl font-bold text-white mb-2">{roleImprovement[improveRole].name}</h2>
+              <p className="text-slate-300">{roleImprovement[improveRole].description}</p>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Core Concepts */}
+              <div className="space-y-4">
+                <Card title="Core Concepts" icon="🧠">
+                  <div className="space-y-3">
+                    {roleImprovement[improveRole].coreConcepts.map((concept, i) => (
+                      <div key={i} className="p-3 bg-slate-700/30 rounded-lg">
+                        <div className="font-bold text-purple-400 mb-1">{concept.name}</div>
+                        <div className="text-sm text-slate-300">{concept.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Champion Pool */}
+                {roleImprovement[improveRole].championPool && (
+                  <Card title="Recommended Champions" icon="👥">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-xs text-green-400 font-bold mb-1">BEGINNER FRIENDLY</div>
+                        <div className="text-sm text-slate-300">{roleImprovement[improveRole].championPool.beginner.join(', ')}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-yellow-400 font-bold mb-1">INTERMEDIATE</div>
+                        <div className="text-sm text-slate-300">{roleImprovement[improveRole].championPool.intermediate.join(', ')}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-red-400 font-bold mb-1">ADVANCED</div>
+                        <div className="text-sm text-slate-300">{roleImprovement[improveRole].championPool.advanced.join(', ')}</div>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </div>
+
+              {/* Practice Drills */}
+              <div className="space-y-4">
+                <Card title="Practice Drills" icon="🎯">
+                  <div className="space-y-3">
+                    {roleImprovement[improveRole].practiceDrills.map((drill, i) => (
+                      <div key={i} className="p-3 bg-slate-700/30 rounded-lg">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-bold text-white">{drill.name}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            drill.difficulty === 'Beginner' ? 'bg-green-500/20 text-green-400' :
+                            drill.difficulty === 'Intermediate' ? 'bg-yellow-500/20 text-yellow-400' :
+                            drill.difficulty === 'Advanced' ? 'bg-red-500/20 text-red-400' :
+                            'bg-purple-500/20 text-purple-400'
+                          }`}>{drill.difficulty}</span>
+                        </div>
+                        <div className="text-xs text-slate-400 mb-1">⏱️ {drill.duration}</div>
+                        <div className="text-sm text-slate-300 mb-2">{drill.description}</div>
+                        <div className="text-xs text-green-400">🎯 Goal: {drill.goal}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+
+              {/* Tips & Mistakes */}
+              <div className="space-y-4">
+                <Card title="Common Mistakes" icon="❌">
+                  <div className="space-y-2">
+                    {roleImprovement[improveRole].commonMistakes.map((mistake, i) => (
+                      <div key={i} className="flex gap-2 text-sm p-2 bg-red-500/10 rounded-lg">
+                        <span className="text-red-400">✗</span>
+                        <span className="text-slate-300">{mistake}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card title="Advanced Tips" icon="💡">
+                  <div className="space-y-2">
+                    {roleImprovement[improveRole].advancedTips.map((tip, i) => (
+                      <div key={i} className="flex gap-2 text-sm p-2 bg-green-500/10 rounded-lg">
+                        <span className="text-green-400">✓</span>
+                        <span className="text-slate-300">{tip}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Role-Specific Content */}
+            {roleImprovement[improveRole].junglePaths && (
+              <Card title="Jungle Pathing Guide" icon="🗺️">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Object.entries(roleImprovement[improveRole].junglePaths).map(([key, path]) => (
+                    <div key={key} className="p-4 bg-slate-700/30 rounded-xl">
+                      <div className="font-bold text-purple-400 mb-2">{path.name}</div>
+                      <div className="text-sm text-blue-300 mb-2 font-mono">{path.path}</div>
+                      <div className="text-xs text-slate-400 mb-2"><b>When:</b> {path.when}</div>
+                      <div className="text-xs text-slate-500"><b>Good for:</b> {path.champions.join(', ')}</div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {roleImprovement[improveRole].waveManagement && (
+              <Card title="Wave Management" icon="🌊">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {Object.entries(roleImprovement[improveRole].waveManagement).map(([key, desc]) => (
+                    <div key={key} className="p-4 bg-slate-700/30 rounded-xl">
+                      <div className="font-bold text-yellow-400 capitalize mb-2">{key}</div>
+                      <div className="text-sm text-slate-300">{desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {roleImprovement[improveRole].roamingGuide && (
+              <Card title="Roaming Guide" icon="🏃">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="font-bold text-green-400 mb-2">WHEN TO ROAM</div>
                     <div className="space-y-1">
-                      {items.map((item, i) => (
-                        <label key={i} className="flex items-center gap-2 text-sm cursor-pointer p-2 hover:bg-slate-700/30 rounded">
-                          <input type="checkbox" checked={checkedItems[`${category}-${i}`] || false} onChange={(e) => setCheckedItems({ ...checkedItems, [`${category}-${i}`]: e.target.checked })} className="rounded accent-purple-500" />
-                          <span className={checkedItems[`${category}-${i}`] ? 'text-slate-500 line-through' : 'text-slate-300'}>{item}</span>
-                        </label>
+                      {roleImprovement[improveRole].roamingGuide.when.map((tip, i) => (
+                        <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-green-400">•</span>{tip}</div>
                       ))}
                     </div>
                   </div>
-                ))}
+                  <div>
+                    <div className="font-bold text-blue-400 mb-2">HOW TO ROAM</div>
+                    <div className="space-y-1">
+                      {roleImprovement[improveRole].roamingGuide.how.map((tip, i) => (
+                        <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-blue-400">•</span>{tip}</div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </Card>
-            </div>
-            <div className="space-y-4">
-              <Card title="Improvement Goals" icon="🎯">
+            )}
+
+            {roleImprovement[improveRole].wardingGuide && (
+              <Card title="Warding Guide" icon="👁️">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(roleImprovement[improveRole].wardingGuide).map(([phase, wards]) => (
+                    <div key={phase} className="p-4 bg-slate-700/30 rounded-xl">
+                      <div className="font-bold text-cyan-400 capitalize mb-2">{phase.replace(/([A-Z])/g, ' $1').trim()}</div>
+                      <div className="space-y-1">
+                        {wards.map((ward, i) => (
+                          <div key={i} className="text-sm text-slate-300 flex gap-2"><span className="text-cyan-400">•</span>{ward}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {roleImprovement[improveRole].positioningGuide && (
+              <Card title="Positioning Guide" icon="📍">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {Object.entries(roleImprovement[improveRole].positioningGuide).map(([situation, advice]) => (
+                    <div key={situation} className="p-4 bg-slate-700/30 rounded-xl">
+                      <div className="font-bold text-orange-400 capitalize mb-2">{situation}</div>
+                      <div className="text-sm text-slate-300">{advice}</div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {roleImprovement[improveRole].viablePicks && (
+              <Card title="Viable Off-Meta Picks" icon="🎭">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  {Object.entries(roleImprovement[improveRole].viablePicks).map(([role, picks]) => (
+                    <div key={role} className="p-3 bg-slate-700/30 rounded-xl">
+                      <div className="font-bold text-purple-400 capitalize mb-2">{role.replace(/([A-Z])/g, ' $1').trim()}</div>
+                      <div className="space-y-2">
+                        {picks.map((pick, i) => (
+                          <div key={i} className="text-xs">
+                            <span className="text-white font-bold">{pick.champ}</span>
+                            <div className="text-slate-400">{pick.why}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Goals and VOD Review */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card title="VOD Review Checklist" icon="📋">
+                {Object.entries(generalImprovement.VODReview.checkList).length > 0 && (
+                  <div className="space-y-1">
+                    {generalImprovement.VODReview.checkList.map((item, i) => (
+                      <label key={i} className="flex items-center gap-2 text-sm cursor-pointer p-2 hover:bg-slate-700/30 rounded">
+                        <input type="checkbox" checked={checkedItems[`vod-${i}`] || false} onChange={(e) => setCheckedItems({ ...checkedItems, [`vod-${i}`]: e.target.checked })} className="rounded accent-purple-500" />
+                        <span className={checkedItems[`vod-${i}`] ? 'text-slate-500 line-through' : 'text-slate-300'}>{item}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card title="Your Improvement Goals" icon="🎯">
                 <div className="flex gap-2 mb-4">
                   <input type="text" value={newGoal} onChange={(e) => setNewGoal(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addGoal()} placeholder="Add a new goal..." className="flex-1 bg-slate-700 rounded-lg px-3 py-2 border border-slate-600 text-sm" />
                   <button onClick={addGoal} className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-bold hover:bg-purple-500">Add</button>
@@ -835,15 +1127,481 @@ export default function App() {
                   ))}
                 </div>
               </Card>
-              <Card title="Progress Tips" icon="💡">
-                <div className="space-y-3 text-sm">
-                  <div className="p-3 bg-blue-500/10 rounded-lg"><b className="text-blue-400">Focus on one thing at a time.</b> Don't try to fix everything at once.</div>
-                  <div className="p-3 bg-green-500/10 rounded-lg"><b className="text-green-400">Review one replay per day.</b> Look for patterns in your deaths.</div>
-                  <div className="p-3 bg-purple-500/10 rounded-lg"><b className="text-purple-400">Play 2 warm-up games.</b> Don't jump straight into ranked.</div>
-                  <div className="p-3 bg-yellow-500/10 rounded-lg"><b className="text-yellow-400">Take breaks after losses.</b> Tilt kills your LP more than bad play.</div>
-                </div>
-              </Card>
             </div>
+
+            {/* General Tips */}
+            <Card title="Universal Improvement Tips" icon="📚">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="font-bold text-blue-400 mb-2">🎮 Fundamentals</div>
+                  <div className="space-y-2">
+                    {generalImprovement.fundamentals.map((f, i) => (
+                      <div key={i} className="text-sm p-2 bg-blue-500/10 rounded-lg">
+                        <span className="text-white font-bold">{f.name}:</span> <span className="text-slate-300">{f.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-bold text-green-400 mb-2">🧠 Mental Game</div>
+                  <div className="space-y-2">
+                    {generalImprovement.mentalGame.map((m, i) => (
+                      <div key={i} className="text-sm p-2 bg-green-500/10 rounded-lg">
+                        <span className="text-white font-bold">{m.name}:</span> <span className="text-slate-300">{m.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-bold text-yellow-400 mb-2">📖 Game Knowledge</div>
+                  <div className="space-y-2">
+                    {generalImprovement.gameKnowledge.map((g, i) => (
+                      <div key={i} className="text-sm p-2 bg-yellow-500/10 rounded-lg">
+                        <span className="text-white font-bold">{g.name}:</span> <span className="text-slate-300">{g.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* COACHING TAB */}
+        {tab === 'coaching' && (
+          <div className="space-y-6">
+            {/* Coaching Navigation */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {[
+                { key: 'assessment', label: '📊 Assessment', desc: 'Skill Check' },
+                { key: 'paths', label: '🛤️ Learning Paths', desc: 'Structured Plans' },
+                { key: 'drills', label: '🎯 Drills', desc: 'Practice Library' },
+                { key: 'vod', label: '📹 VOD Review', desc: 'Game Analysis' },
+                { key: 'mental', label: '🧠 Mental', desc: 'Peak Performance' },
+                { key: 'rank', label: '🏆 By Rank', desc: 'Specific Tips' }
+              ].map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => setCoachingTab(item.key)}
+                  className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                    coachingTab === item.key 
+                      ? 'bg-purple-600 text-white scale-105' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* SKILL ASSESSMENT */}
+            {coachingTab === 'assessment' && (
+              <div className="space-y-6">
+                <Card className="text-center py-6">
+                  <div className="text-4xl mb-2">📊</div>
+                  <h2 className="text-2xl font-bold">Skill Assessment Framework</h2>
+                  <p className="text-slate-400">Evaluate your skills across all dimensions of League of Legends gameplay.</p>
+                </Card>
+
+                {Object.entries(skillAssessment.categories).map(([catKey, category]) => (
+                  <Card key={catKey} title={`${category.name} (${(category.weight * 100)}% of overall)`} icon="📈">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {category.skills.map((skill, i) => (
+                        <div key={i} className="p-4 bg-slate-700/30 rounded-xl">
+                          <div className="font-bold text-purple-400 mb-1">{skill.name}</div>
+                          <div className="text-xs text-slate-400 mb-3">{skill.description}</div>
+                          <div className="text-xs space-y-1">
+                            <div className="flex justify-between"><span className="text-slate-500">Iron-Bronze:</span><span className="text-red-400">{skill.benchmarks.iron}-{skill.benchmarks.bronze}/10</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">Silver-Gold:</span><span className="text-yellow-400">{skill.benchmarks.silver}-{skill.benchmarks.gold}/10</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">Plat-Diamond:</span><span className="text-blue-400">{skill.benchmarks.plat}-{skill.benchmarks.diamond}/10</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">Master+:</span><span className="text-purple-400">{skill.benchmarks.master}/10</span></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+
+                <Card title="Stats to Track" icon="📋">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <div className="font-bold text-blue-400 mb-2">Per Game</div>
+                      {statsToTrack.perGame.map((s, i) => (
+                        <div key={i} className="flex justify-between text-sm p-2 bg-slate-700/30 rounded mb-1">
+                          <span className="text-slate-300">{s.stat}</span>
+                          <span className="text-green-400">{s.goal}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <div className="font-bold text-yellow-400 mb-2">Weekly</div>
+                      {statsToTrack.weekly.map((s, i) => (
+                        <div key={i} className="flex justify-between text-sm p-2 bg-slate-700/30 rounded mb-1">
+                          <span className="text-slate-300">{s.stat}</span>
+                          <span className="text-green-400">{s.goal}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <div className="font-bold text-purple-400 mb-2">Monthly</div>
+                      {statsToTrack.monthly.map((s, i) => (
+                        <div key={i} className="flex justify-between text-sm p-2 bg-slate-700/30 rounded mb-1">
+                          <span className="text-slate-300">{s.stat}</span>
+                          <span className="text-green-400">{s.goal}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* LEARNING PATHS */}
+            {coachingTab === 'paths' && (
+              <div className="space-y-6">
+                <Card className="text-center py-6">
+                  <div className="text-4xl mb-2">🛤️</div>
+                  <h2 className="text-2xl font-bold">Structured Learning Paths</h2>
+                  <p className="text-slate-400">Week-by-week plans to climb from your current rank.</p>
+                </Card>
+
+                {Object.entries(learningPaths).map(([pathKey, path]) => (
+                  <Card key={pathKey} title={`${path.name} (${path.duration})`} icon="📚">
+                    <div className="mb-4">
+                      <div className="text-sm text-slate-400 mb-2">Focus Areas:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {path.focus.map((f, i) => (
+                          <span key={i} className="px-3 py-1 bg-purple-500/20 rounded-full text-sm text-purple-400">{f}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {path.weeklyPlan.map((week, i) => (
+                        <div key={i} className="p-4 bg-slate-700/30 rounded-xl">
+                          <div className="font-bold text-blue-400 mb-1">Week {week.week}: {week.theme}</div>
+                          <div className="text-xs text-slate-400 mb-2">Goals:</div>
+                          <div className="space-y-1">
+                            {week.goals.map((g, j) => (
+                              <div key={j} className="text-xs text-slate-300">• {g}</div>
+                            ))}
+                          </div>
+                          {week.drills && (
+                            <div className="mt-2 pt-2 border-t border-slate-600">
+                              <div className="text-xs text-green-400">Drills: {week.drills.join(', ')}</div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* PRACTICE DRILLS */}
+            {coachingTab === 'drills' && (
+              <div className="space-y-6">
+                <Card className="text-center py-6">
+                  <div className="text-4xl mb-2">🎯</div>
+                  <h2 className="text-2xl font-bold">Practice Drill Library</h2>
+                  <p className="text-slate-400">Targeted exercises to improve specific skills.</p>
+                </Card>
+
+                {/* Warm-up Routines */}
+                <Card title="Warm-Up Routines" icon="🔥">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {Object.entries(warmUpRoutines).map(([key, routine]) => (
+                      <div key={key} className="p-4 bg-slate-700/30 rounded-xl">
+                        <div className="font-bold text-yellow-400 mb-1">{routine.name}</div>
+                        <div className="text-xs text-slate-400 mb-2">{routine.duration} • {routine.when}</div>
+                        <div className="space-y-1">
+                          {routine.routine.map((step, i) => (
+                            <div key={i} className="text-xs p-2 bg-slate-700/50 rounded">
+                              <span className="text-blue-400">{step.time}:</span> {step.activity}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* CS Drills */}
+                <Card title="CS'ing Drills" icon="💰">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {practiceLibrary.mechanics.csing.map((drill, i) => (
+                      <div key={i} className="p-4 bg-slate-700/30 rounded-xl">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-bold text-white">{drill.name}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            drill.difficulty === 'Beginner' ? 'bg-green-500/20 text-green-400' :
+                            drill.difficulty === 'Intermediate' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>{drill.difficulty}</span>
+                        </div>
+                        <div className="text-xs text-slate-400 mb-2">⏱️ {drill.duration} • 🎯 {drill.goal}</div>
+                        <div className="text-sm text-slate-300 mb-2">{drill.explanation}</div>
+                        <div className="text-xs text-blue-400">
+                          <b>Progression:</b> {drill.progression.join(' → ')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Combo Drills */}
+                <Card title="Combo Drills" icon="⚡">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {practiceLibrary.mechanics.combos.map((drill, i) => (
+                      <div key={i} className="p-4 bg-slate-700/30 rounded-xl">
+                        <div className="font-bold text-purple-400 mb-1">{drill.name}</div>
+                        <div className="text-xs text-slate-400 mb-2">{drill.duration} • {drill.difficulty}</div>
+                        <div className="text-sm text-slate-300 mb-2">{drill.explanation}</div>
+                        <div className="text-xs text-green-400">🎯 {drill.goal}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Wave Management Drills */}
+                <Card title="Wave Management Drills" icon="🌊">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {practiceLibrary.macro.waveManagement.map((drill, i) => (
+                      <div key={i} className="p-4 bg-slate-700/30 rounded-xl">
+                        <div className="font-bold text-blue-400 mb-1">{drill.name}</div>
+                        <div className="text-xs text-slate-400 mb-2">{drill.duration} • {drill.difficulty}</div>
+                        <div className="text-sm text-slate-300 mb-2">{drill.explanation}</div>
+                        <div className="text-xs text-green-400">🎯 {drill.goal}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* VOD REVIEW */}
+            {coachingTab === 'vod' && (
+              <div className="space-y-6">
+                <Card className="text-center py-6">
+                  <div className="text-4xl mb-2">📹</div>
+                  <h2 className="text-2xl font-bold">VOD Review System</h2>
+                  <p className="text-slate-400">Learn to analyze your own gameplay like a pro coach.</p>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Object.entries(vodReviewSystem).map(([key, review]) => (
+                    <Card key={key} title={review.name} className="h-full">
+                      <div className="text-xs text-slate-400 mb-2">⏱️ {review.duration} • {review.when}</div>
+                      {review.focus && (
+                        <div className="mb-3">
+                          <div className="text-xs text-purple-400 font-bold mb-1">Focus:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {review.focus.map((f, i) => (
+                              <span key={i} className="text-xs px-2 py-0.5 bg-purple-500/20 rounded">{f}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {review.questions && (
+                        <div>
+                          <div className="text-xs text-green-400 font-bold mb-1">Questions to Ask:</div>
+                          <div className="space-y-1">
+                            {review.questions.map((q, i) => (
+                              <div key={i} className="text-xs text-slate-300">• {q}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {review.sections && (
+                        <div className="space-y-2">
+                          {Object.entries(review.sections).map(([sKey, section]) => (
+                            <div key={sKey} className="p-2 bg-slate-700/30 rounded">
+                              <div className="text-xs text-yellow-400 font-bold">{section.name}</div>
+                              <div className="text-xs text-slate-400">
+                                {section.checkpoints.length} checkpoints
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Deep Review Checkpoints */}
+                <Card title="Deep Review Checkpoints" icon="⏱️">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {Object.entries(vodReviewSystem.deepReview.sections).map(([key, section]) => (
+                      <div key={key} className="p-4 bg-slate-700/30 rounded-xl">
+                        <div className="font-bold text-blue-400 mb-3">{section.name}</div>
+                        <div className="space-y-2">
+                          {section.checkpoints.map((cp, i) => (
+                            <div key={i} className="flex gap-2 text-xs p-2 bg-slate-700/50 rounded">
+                              <span className="text-yellow-400 min-w-[40px]">{cp.time}</span>
+                              <span className="text-slate-300">{cp.check}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* MENTAL GAME */}
+            {coachingTab === 'mental' && (
+              <div className="space-y-6">
+                <Card className="text-center py-6">
+                  <div className="text-4xl mb-2">🧠</div>
+                  <h2 className="text-2xl font-bold">Mental Performance</h2>
+                  <p className="text-slate-400">Peak mental state for consistent high performance.</p>
+                </Card>
+
+                {/* Pre-Game */}
+                <Card title="Pre-Game Checklist" icon="✅">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="font-bold text-green-400 mb-3">Ready to Play? Check:</div>
+                      <div className="space-y-2">
+                        {mentalPerformance.preGame.checklist.map((item, i) => (
+                          <label key={i} className="flex items-center gap-2 text-sm cursor-pointer p-2 hover:bg-slate-700/30 rounded">
+                            <input type="checkbox" className="rounded accent-green-500" />
+                            <span className="text-slate-300">{item}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-red-400 mb-3">Red Flags - Don't Play If:</div>
+                      <div className="space-y-2">
+                        {mentalPerformance.preGame.redFlags.map((flag, i) => (
+                          <div key={i} className="flex gap-2 text-sm p-2 bg-red-500/10 rounded">
+                            <span className="text-red-400">⚠️</span>
+                            <span className="text-slate-300">{flag}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* In-Game Mental */}
+                <Card title="In-Game Mental" icon="🎮">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="font-bold text-purple-400 mb-3">Mantras</div>
+                      <div className="space-y-2">
+                        {mentalPerformance.inGame.mantras.map((mantra, i) => (
+                          <div key={i} className="p-3 bg-purple-500/10 rounded-lg text-sm text-slate-300">"{mantra}"</div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-yellow-400 mb-3">Trigger Responses</div>
+                      <div className="space-y-2">
+                        {Object.entries(mentalPerformance.inGame.triggers).map(([trigger, response]) => (
+                          <div key={trigger} className="p-3 bg-slate-700/30 rounded-lg text-sm">
+                            <span className="text-yellow-400 capitalize">{trigger}:</span>
+                            <span className="text-slate-300 ml-2">{response}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Post-Game Protocol */}
+                <Card title="Post-Game Protocol" icon="📋">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-green-500/10 rounded-xl border border-green-500/30">
+                      <div className="font-bold text-green-400 mb-3">After a Win</div>
+                      <div className="space-y-2">
+                        {mentalPerformance.postGame.win.map((item, i) => (
+                          <div key={i} className="text-sm text-slate-300">• {item}</div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-red-500/10 rounded-xl border border-red-500/30">
+                      <div className="font-bold text-red-400 mb-3">After a Loss</div>
+                      <div className="space-y-2">
+                        {mentalPerformance.postGame.loss.map((item, i) => (
+                          <div key={i} className="text-sm text-slate-300">• {item}</div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-orange-500/10 rounded-xl border border-orange-500/30">
+                      <div className="font-bold text-orange-400 mb-3">Loss Streak Protocol</div>
+                      <div className="space-y-2">
+                        {mentalPerformance.postGame.lossStreak.map((item, i) => (
+                          <div key={i} className="text-sm text-slate-300">• {item}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Tilt Prevention */}
+                <Card title="Tilt Prevention Drills" icon="😤">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {practiceLibrary.mental.tiltPrevention.map((drill, i) => (
+                      <div key={i} className="p-4 bg-slate-700/30 rounded-xl">
+                        <div className="font-bold text-purple-400 mb-1">{drill.name}</div>
+                        <div className="text-xs text-slate-400 mb-2">{drill.setup}</div>
+                        <div className="text-sm text-slate-300 mb-2">{drill.explanation}</div>
+                        <div className="text-xs text-green-400">🎯 {drill.goal}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* RANK SPECIFIC */}
+            {coachingTab === 'rank' && (
+              <div className="space-y-6">
+                <Card className="text-center py-6">
+                  <div className="text-4xl mb-2">🏆</div>
+                  <h2 className="text-2xl font-bold">Rank-Specific Coaching</h2>
+                  <p className="text-slate-400">What to focus on at YOUR rank to climb efficiently.</p>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(rankCoaching).map(([rank, data]) => (
+                    <Card key={rank} title={rank} className="h-full">
+                      <div className="space-y-3">
+                        <div>
+                          <div className="text-xs text-red-400 font-bold mb-1">Biggest Issues:</div>
+                          <div className="space-y-1">
+                            {data.biggestIssues.map((issue, i) => (
+                              <div key={i} className="text-xs text-slate-400">• {issue}</div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-green-400 font-bold mb-1">Quick Wins:</div>
+                          <div className="space-y-1">
+                            {data.quickWins.map((win, i) => (
+                              <div key={i} className="text-xs text-slate-300">✓ {win}</div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-blue-400 font-bold mb-1">Weekly Goals:</div>
+                          <div className="space-y-1">
+                            {data.weeklyGoals.map((goal, i) => (
+                              <div key={i} className="text-xs p-1 bg-slate-700/30 rounded">
+                                <span className="text-blue-400">W{goal.week}:</span> {goal.goal}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
