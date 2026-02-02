@@ -12,7 +12,7 @@ import { runeMath, minorRuneMath, generateRunePage, championRunePresets } from '
 import { skillAssessment, learningPaths, practiceLibrary, vodReviewSystem, warmUpRoutines, mentalPerformance, rankCoaching, statsToTrack } from './data/coachingSystem';
 import { communityGuides, GUIDE_CATEGORIES, DIFFICULTY_LEVELS, filterGuides, sortGuides, validateGuide, generateGuideId } from './data/communityGuides';
 import { TEAM_COMP_TYPES, COMP_CHAMPIONS, COMP_ITEM_BUILDS, SITUATIONAL_BUILDS, analyzeEnemyTeam, getCompInfo, getChampionsForComp, getBuildForComp } from './data/teamCompositions';
-import { ITEMS as ITEMS_DB, getItem, getItemIcon, calculateBuildCost, ITEM_TAGS, CURRENT_PATCH } from './data/itemsDatabase';
+import { ITEMS as ITEMS_DB, getItem, getItemIcon, getItemIconByName, calculateBuildCost, ITEM_TAGS, CURRENT_PATCH } from './data/itemsDatabase';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -44,6 +44,37 @@ const ChampIcon = ({ id, size = 48, className = '' }) => (
 const ItemIcon = ({ id, size = 32 }) => (
   <img src={`${ITEM_ICON_BASE}${id}.png`} alt={id} className="rounded" style={{ width: size, height: size }}
     onError={(e) => { e.target.src = `https://via.placeholder.com/${size}?text=?`; }} />
+);
+
+// Item icon by NAME - uses Data Dragon API images, no emojis
+const ItemIconByName = ({ name, size = 28, className = '' }) => {
+  const iconUrl = getItemIconByName(name);
+  if (!iconUrl) {
+    return <div className={`bg-slate-600 rounded flex items-center justify-center text-xs ${className}`} style={{ width: size, height: size }}>?</div>;
+  }
+  return (
+    <img 
+      src={iconUrl} 
+      alt={name} 
+      className={`rounded ${className}`} 
+      style={{ width: size, height: size }}
+      onError={(e) => { e.target.src = `https://via.placeholder.com/${size}?text=?`; }}
+      title={name}
+    />
+  );
+};
+
+// Reusable component for displaying item builds with proper Data Dragon icons
+const ItemBuildList = ({ items, colorClass = 'bg-blue-500/20' }) => (
+  <div className="flex flex-wrap gap-2">
+    {items.map((item, i) => (
+      <div key={i} className={`flex items-center gap-2 px-2 py-1.5 ${colorClass} rounded-lg`}>
+        <span className="text-xs text-slate-400 font-bold">{i+1}.</span>
+        <ItemIconByName name={item} size={24} />
+        <span className="text-sm font-medium">{item}</span>
+      </div>
+    ))}
+  </div>
 );
 
 const TierBadge = ({ t }) => <span className="px-2 py-0.5 rounded text-xs font-bold text-black" style={{ backgroundColor: TIER_COLORS[t] }}>{t}</span>;
@@ -1869,61 +1900,37 @@ export default function App() {
                           <div>
                             {guideFilter.compType === 'DIVE' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Goredrinker', 'Black Cleaver', 'Death\'s Dance', 'Sterak\'s Gage', 'Gargoyle Stoneplate'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Goredrinker', 'Black Cleaver', 'Death\'s Dance', 'Sterak\'s Gage', 'Gargoyle Stoneplate']} />
                                 <p className="text-sm text-slate-400 mt-2">Build maximum survivability. Goredrinker + Sterak's shields let you survive dives and turn fights.</p>
                               </div>
                             )}
                             {guideFilter.compType === 'POKE' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Eclipse', 'Force of Nature', 'Black Cleaver', 'Spirit Visage', 'Sterak\'s Gage'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Eclipse', 'Force of Nature', 'Black Cleaver', 'Spirit Visage', 'Sterak\'s Gage']} />
                                 <p className="text-sm text-slate-400 mt-2">Force of Nature reduces poke damage. Spirit Visage amplifies healing. Force engages when healthy.</p>
                               </div>
                             )}
                             {guideFilter.compType === 'TANK' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Eclipse', 'Black Cleaver', 'Serylda\'s Grudge', 'Lord Dominik\'s Regards', 'Death\'s Dance'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Eclipse', 'Black Cleaver', 'Serylda\'s Grudge', 'Lord Dominik\'s Regards', 'Death\'s Dance']} />
                                 <p className="text-sm text-slate-400 mt-2">Maximum armor penetration. Cleaver + LDR shreds tanks. Cut Down rune mandatory.</p>
                               </div>
                             )}
                             {guideFilter.compType === 'ENGAGE' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Eclipse', 'Black Cleaver', 'Maw of Malmortius', 'Sterak\'s Gage', 'Death\'s Dance'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Eclipse', 'Black Cleaver', 'Maw of Malmortius', 'Sterak\'s Gage', 'Death\'s Dance']} />
                                 <p className="text-sm text-slate-400 mt-2">Triple shield build survives their burst. Mercury's Treads + Tenacity essential.</p>
                               </div>
                             )}
                             {guideFilter.compType === 'SPLITPUSH' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Trinity Force', 'Hullbreaker', 'Death\'s Dance', 'Sterak\'s Gage', 'Guardian Angel'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Trinity Force', 'Hullbreaker', 'Death\'s Dance', 'Sterak\'s Gage', 'Guardian Angel']} />
                                 <p className="text-sm text-slate-400 mt-2">Match their split with Hullbreaker. Win 1v1s and take towers. Group when they group.</p>
                               </div>
                             )}
                             {guideFilter.compType === 'PICK' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Eclipse', 'Black Cleaver', 'Edge of Night', 'Maw of Malmortius', 'Death\'s Dance'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Eclipse', 'Black Cleaver', 'Edge of Night', 'Maw of Malmortius', 'Death\'s Dance']} />
                                 <p className="text-sm text-slate-400 mt-2">Edge of Night spell shield prevents picks. Stay grouped and ward defensively.</p>
                               </div>
                             )}
@@ -1935,31 +1942,19 @@ export default function App() {
                           <div>
                             {guideFilter.compType === 'DIVE' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Galeforce', 'Phantom Dancer', 'Infinity Edge', 'Guardian Angel', 'Bloodthirster'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Galeforce', 'Phantom Dancer', 'Infinity Edge', 'Guardian Angel', 'Bloodthirster']} />
                                 <p className="text-sm text-slate-400 mt-2">Galeforce dash escapes dives. GA gives second chance. Position FAR back and let them waste cooldowns.</p>
                               </div>
                             )}
                             {guideFilter.compType === 'TANK' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Kraken Slayer', 'Blade of the Ruined King', 'Infinity Edge', 'Lord Dominik\'s Regards', 'Mortal Reminder'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Kraken Slayer', 'Blade of the Ruined King', 'Infinity Edge', 'Lord Dominik\'s Regards', 'Mortal Reminder']} />
                                 <p className="text-sm text-slate-400 mt-2">Kraken true damage + BORK %HP + LDR = tanks melt. Cut Down rune mandatory.</p>
                               </div>
                             )}
                             {['POKE', 'ENGAGE', 'SPLITPUSH', 'PICK'].includes(guideFilter.compType) && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Kraken Slayer', 'Phantom Dancer', 'Infinity Edge', 'Rapid Firecannon', 'Guardian Angel'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Kraken Slayer', 'Phantom Dancer', 'Infinity Edge', 'Rapid Firecannon', 'Guardian Angel']} />
                                 <p className="text-sm text-slate-400 mt-2">Standard crit build. RFC for safe poke. GA for insurance. Position carefully.</p>
                               </div>
                             )}
@@ -1971,31 +1966,19 @@ export default function App() {
                           <div>
                             {guideFilter.compType === 'DIVE' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Luden\'s Companion', 'Zhonya\'s Hourglass', 'Banshee\'s Veil', 'Rabadon\'s Deathcap', 'Void Staff'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-purple-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Luden\'s Companion', 'Zhonya\'s Hourglass', 'Banshee\'s Veil', 'Rabadon\'s Deathcap', 'Void Staff']} colorClass="bg-purple-500/20" />
                                 <p className="text-sm text-slate-400 mt-2">Zhonya's is MANDATORY. Stasis buys 2.5s for team to peel. Banshee's blocks engage spells.</p>
                               </div>
                             )}
                             {guideFilter.compType === 'TANK' && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Liandry\'s Torment', 'Void Staff', 'Rabadon\'s Deathcap', 'Cryptbloom', 'Zhonya\'s Hourglass'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-purple-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Liandry\'s Torment', 'Void Staff', 'Rabadon\'s Deathcap', 'Cryptbloom', 'Zhonya\'s Hourglass']} colorClass="bg-purple-500/20" />
                                 <p className="text-sm text-slate-400 mt-2">Liandry's burn + Void Staff pen melts tanks. Extended fights favor your %HP damage.</p>
                               </div>
                             )}
                             {['POKE', 'ENGAGE', 'SPLITPUSH', 'PICK'].includes(guideFilter.compType) && (
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {['Luden\'s Companion', 'Shadowflame', 'Rabadon\'s Deathcap', 'Void Staff', 'Zhonya\'s Hourglass'].map((item, i) => (
-                                    <span key={i} className="px-3 py-2 bg-purple-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                  ))}
-                                </div>
+                                <ItemBuildList items={['Luden\'s Companion', 'Shadowflame', 'Rabadon\'s Deathcap', 'Void Staff', 'Zhonya\'s Hourglass']} colorClass="bg-purple-500/20" />
                                 <p className="text-sm text-slate-400 mt-2">Standard burst build. Maximum damage. Zhonya's for safety.</p>
                               </div>
                             )}
@@ -2006,20 +1989,18 @@ export default function App() {
                         {yourChamp.class?.some(c => ['Tank', 'Vanguard', 'Warden'].includes(c)) && (
                           <div>
                             <div className="space-y-2">
-                              <div className="flex flex-wrap gap-2">
-                                {guideFilter.compType === 'DIVE' && ['Jak\'Sho', 'Thornmail', 'Randuin\'s Omen', 'Force of Nature', 'Warmog\'s Armor'].map((item, i) => (
-                                  <span key={i} className="px-3 py-2 bg-green-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                ))}
-                                {guideFilter.compType === 'POKE' && ['Heartsteel', 'Force of Nature', 'Spirit Visage', 'Warmog\'s Armor', 'Jak\'Sho'].map((item, i) => (
-                                  <span key={i} className="px-3 py-2 bg-green-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                ))}
-                                {guideFilter.compType === 'TANK' && ['Heartsteel', 'Sunfire Aegis', 'Thornmail', 'Abyssal Mask', 'Jak\'Sho'].map((item, i) => (
-                                  <span key={i} className="px-3 py-2 bg-green-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                ))}
-                                {['ENGAGE', 'SPLITPUSH', 'PICK'].includes(guideFilter.compType) && ['Sunfire Aegis', 'Jak\'Sho', 'Thornmail', 'Force of Nature', 'Warmog\'s Armor'].map((item, i) => (
-                                  <span key={i} className="px-3 py-2 bg-green-500/20 rounded-lg font-medium">{i+1}. {item}</span>
-                                ))}
-                              </div>
+                              {guideFilter.compType === 'DIVE' && (
+                                <ItemBuildList items={['Jak\'Sho', 'Thornmail', 'Randuin\'s Omen', 'Force of Nature', 'Warmog\'s Armor']} colorClass="bg-green-500/20" />
+                              )}
+                              {guideFilter.compType === 'POKE' && (
+                                <ItemBuildList items={['Heartsteel', 'Force of Nature', 'Spirit Visage', 'Warmog\'s Armor', 'Jak\'Sho']} colorClass="bg-green-500/20" />
+                              )}
+                              {guideFilter.compType === 'TANK' && (
+                                <ItemBuildList items={['Heartsteel', 'Sunfire Aegis', 'Thornmail', 'Abyssal Mask', 'Jak\'Sho']} colorClass="bg-green-500/20" />
+                              )}
+                              {['ENGAGE', 'SPLITPUSH', 'PICK'].includes(guideFilter.compType) && (
+                                <ItemBuildList items={['Sunfire Aegis', 'Jak\'Sho', 'Thornmail', 'Force of Nature', 'Warmog\'s Armor']} colorClass="bg-green-500/20" />
+                              )}
                               <p className="text-sm text-slate-400 mt-2">Build resistances based on their damage types. Thornmail vs healing. Force of Nature vs AP.</p>
                             </div>
                           </div>
@@ -2254,7 +2235,10 @@ export default function App() {
                         <h4 className="font-bold text-blue-400 mb-2">📦 Core Build</h4>
                         <div className="flex flex-wrap gap-2 mb-2">
                           {selectedGuide.sections.itemBuilds.core?.items?.map((item, i) => (
-                            <span key={i} className="px-3 py-1 bg-blue-500/20 rounded-lg text-sm font-medium">{item}</span>
+                            <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 rounded-lg">
+                              <ItemIconByName name={item} size={24} />
+                              <span className="text-sm font-medium">{item}</span>
+                            </div>
                           ))}
                         </div>
                         <p className="text-sm text-slate-400">{selectedGuide.sections.itemBuilds.core?.explanation}</p>
@@ -2266,13 +2250,13 @@ export default function App() {
                           <h4 className="font-bold text-yellow-400 mb-3">⚡ Situational Items</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {selectedGuide.sections.itemBuilds.situational.map((item, i) => (
-                              <div key={i} className={`p-3 rounded-lg flex items-center gap-2 ${item.priority === 'CRITICAL' ? 'bg-red-500/20 border border-red-500/30' : item.priority === 'HIGH' ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-600/30'}`}>
-                                <span>{item.icon || '🔧'}</span>
-                                <div>
+                              <div key={i} className={`p-3 rounded-lg flex items-center gap-3 ${item.priority === 'CRITICAL' ? 'bg-red-500/20 border border-red-500/30' : item.priority === 'HIGH' ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-600/30'}`}>
+                                <ItemIconByName name={item.item} size={32} />
+                                <div className="flex-1 min-w-0">
                                   <div className="font-medium text-sm">{item.item}</div>
-                                  <div className="text-xs text-slate-400">{item.when}</div>
+                                  <div className="text-xs text-slate-400 truncate">{item.when}</div>
                                 </div>
-                                {item.priority && <span className={`ml-auto text-xs px-2 py-0.5 rounded ${item.priority === 'CRITICAL' ? 'bg-red-500 text-white' : item.priority === 'HIGH' ? 'bg-orange-500 text-white' : 'bg-slate-500'}`}>{item.priority}</span>}
+                                {item.priority && <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap ${item.priority === 'CRITICAL' ? 'bg-red-500 text-white' : item.priority === 'HIGH' ? 'bg-orange-500 text-white' : 'bg-slate-500'}`}>{item.priority}</span>}
                               </div>
                             ))}
                           </div>
@@ -2285,8 +2269,9 @@ export default function App() {
                           <h4 className="font-bold text-green-400 mb-2">👟 Boot Options</h4>
                           <div className="space-y-2">
                             {selectedGuide.sections.itemBuilds.boots.map((boot, i) => (
-                              <div key={i} className="flex justify-between items-center p-2 bg-slate-600/30 rounded">
-                                <span className="font-medium">{boot.item}</span>
+                              <div key={i} className="flex items-center gap-3 p-2 bg-slate-600/30 rounded">
+                                <ItemIconByName name={boot.item} size={28} />
+                                <span className="font-medium flex-1">{boot.item}</span>
                                 <span className="text-xs text-slate-400">{boot.when}</span>
                               </div>
                             ))}
@@ -2299,13 +2284,13 @@ export default function App() {
 
                 {/* TEAM COMP BUILDS - THE BIG NEW SECTION */}
                 {selectedGuide.sections?.itemBuilds?.teamCompBuilds && (
-                  <Card title="🎮 Team Composition Builds - Adapt to WIN" icon="🎯">
+                  <Card title="Team Composition Builds - Adapt to WIN" icon="🎮">
                     <p className="text-slate-400 mb-4">Build differently based on enemy team composition. This is what separates good players from great ones!</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {Object.entries(selectedGuide.sections.itemBuilds.teamCompBuilds).map(([key, build]) => (
                         <div key={key} className="p-4 bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl border border-slate-600 hover:border-purple-500/50 transition-all">
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-2xl">{build.icon}</span>
+                          <div className="flex items-center gap-3 mb-3">
+                            <ItemIconByName name={build.build[0]} size={40} className="border-2 border-purple-500/50" />
                             <div>
                               <div className="font-bold text-lg">{build.name}</div>
                               <div className="text-xs text-slate-400">{key.replace(/([A-Z])/g, ' $1').replace('vs', 'vs ').replace('as', 'as ')}</div>
@@ -2313,18 +2298,21 @@ export default function App() {
                           </div>
                           
                           <div className="mb-3">
-                            <div className="text-xs text-slate-400 mb-1">Build Order:</div>
-                            <div className="flex flex-wrap gap-1">
+                            <div className="text-xs text-slate-400 mb-2">Build Order:</div>
+                            <div className="flex flex-wrap gap-2">
                               {build.build.map((item, i) => (
-                                <span key={i} className="px-2 py-1 bg-slate-600 rounded text-xs">
-                                  {i + 1}. {item}
-                                </span>
+                                <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-slate-600/70 rounded">
+                                  <span className="text-xs text-slate-400">{i + 1}.</span>
+                                  <ItemIconByName name={item} size={24} />
+                                  <span className="text-xs">{item}</span>
+                                </div>
                               ))}
                             </div>
                           </div>
                           
-                          <div className="text-xs mb-2">
-                            <span className="text-slate-400">Boots:</span> <span className="text-green-400">{build.boots}</span>
+                          <div className="text-xs mb-2 flex items-center gap-2">
+                            <span className="text-slate-400">Boots:</span>
+                            <span className="text-green-400">{build.boots}</span>
                           </div>
                           
                           <div className="p-2 bg-slate-800/50 rounded mb-2 text-sm text-slate-300">
@@ -2332,7 +2320,7 @@ export default function App() {
                           </div>
                           
                           <div className="p-2 bg-purple-500/10 rounded text-sm">
-                            <span className="text-purple-400 font-medium">💡 Playstyle: </span>
+                            <span className="text-purple-400 font-medium">Playstyle: </span>
                             <span className="text-slate-300">{build.playstyle}</span>
                           </div>
                         </div>

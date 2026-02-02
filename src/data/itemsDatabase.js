@@ -958,10 +958,94 @@ export const ITEMS = {
 // Get item by ID
 export const getItem = (id) => ITEMS[id] || null;
 
-// Get item icon URL
+// Get item icon URL by ID
 export const getItemIcon = (id) => {
   const item = ITEMS[id];
   return item ? `${ITEM_ICON_BASE}${item.icon}` : null;
+};
+
+// Item name to ID mapping for quick lookups
+const ITEM_NAME_TO_ID = {};
+Object.entries(ITEMS).forEach(([id, item]) => {
+  ITEM_NAME_TO_ID[item.name.toLowerCase()] = parseInt(id);
+});
+
+// Common item aliases
+const ITEM_ALIASES = {
+  'bork': 3153,
+  'ie': 3031,
+  'pd': 3046,
+  'rfc': 3094,
+  'bt': 3072,
+  'ldr': 3036,
+  'ga': 3026,
+  'dd': 6333,
+  'steraks': 3053,
+  'dcap': 3089,
+  'zhonyas': 3157,
+  'mercs': 3111,
+  'tabis': 3047,
+  'steelcaps': 3047,
+};
+
+// Get item icon URL by item NAME (the function we actually need)
+export const getItemIconByName = (itemName) => {
+  if (!itemName) return null;
+  
+  const normalizedName = itemName.toLowerCase().trim();
+  
+  // Check aliases first
+  if (ITEM_ALIASES[normalizedName]) {
+    const item = ITEMS[ITEM_ALIASES[normalizedName]];
+    return item ? `${ITEM_ICON_BASE}${item.icon}` : null;
+  }
+  
+  // Direct match
+  if (ITEM_NAME_TO_ID[normalizedName]) {
+    const item = ITEMS[ITEM_NAME_TO_ID[normalizedName]];
+    return item ? `${ITEM_ICON_BASE}${item.icon}` : null;
+  }
+  
+  // Partial match (for items like "Death's Dance" vs "Death's Dance")
+  for (const [name, id] of Object.entries(ITEM_NAME_TO_ID)) {
+    if (name.includes(normalizedName) || normalizedName.includes(name)) {
+      const item = ITEMS[id];
+      return item ? `${ITEM_ICON_BASE}${item.icon}` : null;
+    }
+  }
+  
+  // Try matching against all items
+  for (const [id, item] of Object.entries(ITEMS)) {
+    if (item.name.toLowerCase().includes(normalizedName) || 
+        normalizedName.includes(item.name.toLowerCase())) {
+      return `${ITEM_ICON_BASE}${item.icon}`;
+    }
+  }
+  
+  return null;
+};
+
+// Get item data by name
+export const getItemByName = (itemName) => {
+  if (!itemName) return null;
+  const normalizedName = itemName.toLowerCase().trim();
+  
+  if (ITEM_ALIASES[normalizedName]) {
+    return ITEMS[ITEM_ALIASES[normalizedName]] || null;
+  }
+  
+  if (ITEM_NAME_TO_ID[normalizedName]) {
+    return ITEMS[ITEM_NAME_TO_ID[normalizedName]] || null;
+  }
+  
+  // Partial match
+  for (const [name, id] of Object.entries(ITEM_NAME_TO_ID)) {
+    if (name.includes(normalizedName) || normalizedName.includes(name)) {
+      return ITEMS[id] || null;
+    }
+  }
+  
+  return null;
 };
 
 // Filter items by tag
