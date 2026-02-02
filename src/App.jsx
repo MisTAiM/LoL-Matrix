@@ -11,6 +11,8 @@ import { roleImprovement, generalImprovement, rankGoals } from './data/improveme
 import { runeMath, minorRuneMath, generateRunePage, championRunePresets } from './data/runeEngine';
 import { skillAssessment, learningPaths, practiceLibrary, vodReviewSystem, warmUpRoutines, mentalPerformance, rankCoaching, statsToTrack } from './data/coachingSystem';
 import { communityGuides, GUIDE_CATEGORIES, DIFFICULTY_LEVELS, filterGuides, sortGuides, validateGuide, generateGuideId } from './data/communityGuides';
+import { TEAM_COMP_TYPES, COMP_CHAMPIONS, COMP_ITEM_BUILDS, SITUATIONAL_BUILDS, analyzeEnemyTeam, getCompInfo, getChampionsForComp, getBuildForComp } from './data/teamCompositions';
+import { ITEMS as ITEMS_DB, getItem, getItemIcon, calculateBuildCost, ITEM_TAGS, CURRENT_PATCH } from './data/itemsDatabase';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -1792,13 +1794,267 @@ export default function App() {
             </div>
 
             {/* Navigation */}
-            <div className="flex gap-2 justify-center">
-              {['browse', 'submit', 'my-guides'].map(t => (
+            <div className="flex gap-2 justify-center flex-wrap">
+              {['browse', 'team-comp', 'submit', 'my-guides'].map(t => (
                 <button key={t} onClick={() => { setCommunityTab(t); setSelectedGuide(null); }} className={`px-6 py-2 rounded-xl font-medium transition-all ${communityTab === t ? 'bg-purple-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}>
-                  {t === 'browse' ? '📚 Browse Guides' : t === 'submit' ? '✏️ Submit Guide' : '📁 My Guides'}
+                  {t === 'browse' ? '📚 Browse Guides' : t === 'team-comp' ? '🎮 Team Comp Builds' : t === 'submit' ? '✏️ Submit Guide' : '📁 My Guides'}
                 </button>
               ))}
             </div>
+
+            {/* TEAM COMP BUILDER - What to build vs enemy team */}
+            {communityTab === 'team-comp' && (
+              <div className="space-y-6">
+                <Card title="🎮 Team Composition Item Builder" icon="⚔️">
+                  <p className="text-slate-400 mb-4">Select your champion and the enemy team composition to get optimal item builds!</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Your Champion */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Your Champion</label>
+                      <select value={yourChamp?.id || ''} onChange={(e) => setYourChamp(CHAMPIONS[e.target.value] || null)} className="w-full bg-slate-700 rounded-lg px-4 py-3 text-lg">
+                        <option value="">Select Your Champion</option>
+                        {Object.values(CHAMPIONS).sort((a,b) => a.name.localeCompare(b.name)).map(c => (
+                          <option key={c.id} value={c.id}>{c.name} ({c.role})</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* Enemy Comp Type */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Enemy Team Composition</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {Object.entries(TEAM_COMP_TYPES).slice(0, 6).map(([key, comp]) => (
+                          <button key={key} onClick={() => setGuideFilter({...guideFilter, compType: key})} 
+                            className={`p-3 rounded-lg border transition-all text-left ${guideFilter.compType === key ? 'border-purple-500 bg-purple-500/20' : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'}`}>
+                            <div className="text-lg mb-1">{comp.icon} {comp.name}</div>
+                            <div className="text-xs text-slate-400">{comp.description?.slice(0, 50)}...</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Build Recommendations */}
+                {yourChamp && guideFilter.compType && (
+                  <Card title={`🛡️ Recommended Build vs ${TEAM_COMP_TYPES[guideFilter.compType]?.name}`} icon={TEAM_COMP_TYPES[guideFilter.compType]?.icon}>
+                    <div className="space-y-4">
+                      {/* Comp Info */}
+                      <div className="p-4 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-xl border border-slate-600">
+                        <h4 className="font-bold text-lg mb-2">{TEAM_COMP_TYPES[guideFilter.compType]?.icon} About {TEAM_COMP_TYPES[guideFilter.compType]?.name}</h4>
+                        <p className="text-slate-300 mb-2">{TEAM_COMP_TYPES[guideFilter.compType]?.strategy}</p>
+                        <div className="grid grid-cols-2 gap-4 mt-3">
+                          <div>
+                            <div className="text-xs text-red-400 font-medium mb-1">Their Strengths:</div>
+                            {TEAM_COMP_TYPES[guideFilter.compType]?.strengths?.slice(0, 3).map((s, i) => (
+                              <div key={i} className="text-xs text-slate-400">• {s}</div>
+                            ))}
+                          </div>
+                          <div>
+                            <div className="text-xs text-green-400 font-medium mb-1">Their Weaknesses:</div>
+                            {TEAM_COMP_TYPES[guideFilter.compType]?.weaknesses?.slice(0, 3).map((w, i) => (
+                              <div key={i} className="text-xs text-slate-400">• {w}</div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Adaptive Build based on champ type */}
+                      <div className="p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30">
+                        <h4 className="font-bold text-blue-400 mb-3">📦 Recommended Build for {yourChamp.name}</h4>
+                        
+                        {/* AD Fighter/Bruiser Build */}
+                        {(yourChamp.damageType === 'physical' && yourChamp.class?.some(c => ['Fighter', 'Juggernaut', 'Skirmisher'].includes(c))) && (
+                          <div>
+                            {guideFilter.compType === 'DIVE' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Goredrinker', 'Black Cleaver', 'Death\'s Dance', 'Sterak\'s Gage', 'Gargoyle Stoneplate'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Build maximum survivability. Goredrinker + Sterak's shields let you survive dives and turn fights.</p>
+                              </div>
+                            )}
+                            {guideFilter.compType === 'POKE' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Eclipse', 'Force of Nature', 'Black Cleaver', 'Spirit Visage', 'Sterak\'s Gage'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Force of Nature reduces poke damage. Spirit Visage amplifies healing. Force engages when healthy.</p>
+                              </div>
+                            )}
+                            {guideFilter.compType === 'TANK' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Eclipse', 'Black Cleaver', 'Serylda\'s Grudge', 'Lord Dominik\'s Regards', 'Death\'s Dance'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Maximum armor penetration. Cleaver + LDR shreds tanks. Cut Down rune mandatory.</p>
+                              </div>
+                            )}
+                            {guideFilter.compType === 'ENGAGE' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Eclipse', 'Black Cleaver', 'Maw of Malmortius', 'Sterak\'s Gage', 'Death\'s Dance'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Triple shield build survives their burst. Mercury's Treads + Tenacity essential.</p>
+                              </div>
+                            )}
+                            {guideFilter.compType === 'SPLITPUSH' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Trinity Force', 'Hullbreaker', 'Death\'s Dance', 'Sterak\'s Gage', 'Guardian Angel'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Match their split with Hullbreaker. Win 1v1s and take towers. Group when they group.</p>
+                              </div>
+                            )}
+                            {guideFilter.compType === 'PICK' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Eclipse', 'Black Cleaver', 'Edge of Night', 'Maw of Malmortius', 'Death\'s Dance'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Edge of Night spell shield prevents picks. Stay grouped and ward defensively.</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* ADC Build */}
+                        {(yourChamp.damageType === 'physical' && yourChamp.class?.some(c => ['Marksman'].includes(c))) && (
+                          <div>
+                            {guideFilter.compType === 'DIVE' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Galeforce', 'Phantom Dancer', 'Infinity Edge', 'Guardian Angel', 'Bloodthirster'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Galeforce dash escapes dives. GA gives second chance. Position FAR back and let them waste cooldowns.</p>
+                              </div>
+                            )}
+                            {guideFilter.compType === 'TANK' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Kraken Slayer', 'Blade of the Ruined King', 'Infinity Edge', 'Lord Dominik\'s Regards', 'Mortal Reminder'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Kraken true damage + BORK %HP + LDR = tanks melt. Cut Down rune mandatory.</p>
+                              </div>
+                            )}
+                            {['POKE', 'ENGAGE', 'SPLITPUSH', 'PICK'].includes(guideFilter.compType) && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Kraken Slayer', 'Phantom Dancer', 'Infinity Edge', 'Rapid Firecannon', 'Guardian Angel'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-blue-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Standard crit build. RFC for safe poke. GA for insurance. Position carefully.</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* AP Mage Build */}
+                        {yourChamp.damageType === 'magic' && (
+                          <div>
+                            {guideFilter.compType === 'DIVE' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Luden\'s Companion', 'Zhonya\'s Hourglass', 'Banshee\'s Veil', 'Rabadon\'s Deathcap', 'Void Staff'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-purple-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Zhonya's is MANDATORY. Stasis buys 2.5s for team to peel. Banshee's blocks engage spells.</p>
+                              </div>
+                            )}
+                            {guideFilter.compType === 'TANK' && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Liandry\'s Torment', 'Void Staff', 'Rabadon\'s Deathcap', 'Cryptbloom', 'Zhonya\'s Hourglass'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-purple-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Liandry's burn + Void Staff pen melts tanks. Extended fights favor your %HP damage.</p>
+                              </div>
+                            )}
+                            {['POKE', 'ENGAGE', 'SPLITPUSH', 'PICK'].includes(guideFilter.compType) && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {['Luden\'s Companion', 'Shadowflame', 'Rabadon\'s Deathcap', 'Void Staff', 'Zhonya\'s Hourglass'].map((item, i) => (
+                                    <span key={i} className="px-3 py-2 bg-purple-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-slate-400 mt-2">Standard burst build. Maximum damage. Zhonya's for safety.</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Tank Build */}
+                        {yourChamp.class?.some(c => ['Tank', 'Vanguard', 'Warden'].includes(c)) && (
+                          <div>
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                {guideFilter.compType === 'DIVE' && ['Jak\'Sho', 'Thornmail', 'Randuin\'s Omen', 'Force of Nature', 'Warmog\'s Armor'].map((item, i) => (
+                                  <span key={i} className="px-3 py-2 bg-green-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                ))}
+                                {guideFilter.compType === 'POKE' && ['Heartsteel', 'Force of Nature', 'Spirit Visage', 'Warmog\'s Armor', 'Jak\'Sho'].map((item, i) => (
+                                  <span key={i} className="px-3 py-2 bg-green-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                ))}
+                                {guideFilter.compType === 'TANK' && ['Heartsteel', 'Sunfire Aegis', 'Thornmail', 'Abyssal Mask', 'Jak\'Sho'].map((item, i) => (
+                                  <span key={i} className="px-3 py-2 bg-green-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                ))}
+                                {['ENGAGE', 'SPLITPUSH', 'PICK'].includes(guideFilter.compType) && ['Sunfire Aegis', 'Jak\'Sho', 'Thornmail', 'Force of Nature', 'Warmog\'s Armor'].map((item, i) => (
+                                  <span key={i} className="px-3 py-2 bg-green-500/20 rounded-lg font-medium">{i+1}. {item}</span>
+                                ))}
+                              </div>
+                              <p className="text-sm text-slate-400 mt-2">Build resistances based on their damage types. Thornmail vs healing. Force of Nature vs AP.</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* General Tips */}
+                      <div className="p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/30">
+                        <h4 className="font-bold text-yellow-400 mb-2">💡 Tips vs {TEAM_COMP_TYPES[guideFilter.compType]?.name}</h4>
+                        <ul className="text-sm text-slate-300 space-y-1">
+                          {TEAM_COMP_TYPES[guideFilter.compType]?.counters?.map((c, i) => (
+                            <li key={i}>• Counter with: {c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Quick Reference Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(TEAM_COMP_TYPES).slice(0, 6).map(([key, comp]) => (
+                    <Card key={key} title={`${comp.icon} ${comp.name}`} className="hover:border-purple-500/50 transition-all">
+                      <p className="text-sm text-slate-400 mb-3">{comp.description}</p>
+                      <div className="text-xs">
+                        <div className="text-green-400 mb-1">Strong against:</div>
+                        <p className="text-slate-500 mb-2">{comp.strongAgainst?.join(', ')}</p>
+                        <div className="text-red-400 mb-1">Weak against:</div>
+                        <p className="text-slate-500">{comp.counters?.join(', ')}</p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* BROWSE GUIDES */}
             {communityTab === 'browse' && !selectedGuide && (
@@ -1983,6 +2239,102 @@ export default function App() {
                           </div>
                           <div className="font-mono text-sm bg-slate-800 p-2 rounded">{combo.inputs}</div>
                           <div className="text-xs text-slate-400 mt-1">Damage: {combo.damage}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {/* ITEM BUILDS SECTION */}
+                {selectedGuide.sections?.itemBuilds && (
+                  <Card title="Item Builds" icon="🛡️">
+                    <div className="space-y-4">
+                      {/* Core Build */}
+                      <div className="p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30">
+                        <h4 className="font-bold text-blue-400 mb-2">📦 Core Build</h4>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {selectedGuide.sections.itemBuilds.core?.items?.map((item, i) => (
+                            <span key={i} className="px-3 py-1 bg-blue-500/20 rounded-lg text-sm font-medium">{item}</span>
+                          ))}
+                        </div>
+                        <p className="text-sm text-slate-400">{selectedGuide.sections.itemBuilds.core?.explanation}</p>
+                      </div>
+
+                      {/* Situational Items */}
+                      {selectedGuide.sections.itemBuilds.situational?.length > 0 && (
+                        <div className="p-4 bg-slate-700/30 rounded-xl">
+                          <h4 className="font-bold text-yellow-400 mb-3">⚡ Situational Items</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {selectedGuide.sections.itemBuilds.situational.map((item, i) => (
+                              <div key={i} className={`p-3 rounded-lg flex items-center gap-2 ${item.priority === 'CRITICAL' ? 'bg-red-500/20 border border-red-500/30' : item.priority === 'HIGH' ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-slate-600/30'}`}>
+                                <span>{item.icon || '🔧'}</span>
+                                <div>
+                                  <div className="font-medium text-sm">{item.item}</div>
+                                  <div className="text-xs text-slate-400">{item.when}</div>
+                                </div>
+                                {item.priority && <span className={`ml-auto text-xs px-2 py-0.5 rounded ${item.priority === 'CRITICAL' ? 'bg-red-500 text-white' : item.priority === 'HIGH' ? 'bg-orange-500 text-white' : 'bg-slate-500'}`}>{item.priority}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Boots */}
+                      {selectedGuide.sections.itemBuilds.boots?.length > 0 && (
+                        <div className="p-4 bg-slate-700/30 rounded-xl">
+                          <h4 className="font-bold text-green-400 mb-2">👟 Boot Options</h4>
+                          <div className="space-y-2">
+                            {selectedGuide.sections.itemBuilds.boots.map((boot, i) => (
+                              <div key={i} className="flex justify-between items-center p-2 bg-slate-600/30 rounded">
+                                <span className="font-medium">{boot.item}</span>
+                                <span className="text-xs text-slate-400">{boot.when}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+                {/* TEAM COMP BUILDS - THE BIG NEW SECTION */}
+                {selectedGuide.sections?.itemBuilds?.teamCompBuilds && (
+                  <Card title="🎮 Team Composition Builds - Adapt to WIN" icon="🎯">
+                    <p className="text-slate-400 mb-4">Build differently based on enemy team composition. This is what separates good players from great ones!</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(selectedGuide.sections.itemBuilds.teamCompBuilds).map(([key, build]) => (
+                        <div key={key} className="p-4 bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl border border-slate-600 hover:border-purple-500/50 transition-all">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-2xl">{build.icon}</span>
+                            <div>
+                              <div className="font-bold text-lg">{build.name}</div>
+                              <div className="text-xs text-slate-400">{key.replace(/([A-Z])/g, ' $1').replace('vs', 'vs ').replace('as', 'as ')}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <div className="text-xs text-slate-400 mb-1">Build Order:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {build.build.map((item, i) => (
+                                <span key={i} className="px-2 py-1 bg-slate-600 rounded text-xs">
+                                  {i + 1}. {item}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="text-xs mb-2">
+                            <span className="text-slate-400">Boots:</span> <span className="text-green-400">{build.boots}</span>
+                          </div>
+                          
+                          <div className="p-2 bg-slate-800/50 rounded mb-2 text-sm text-slate-300">
+                            {build.explanation}
+                          </div>
+                          
+                          <div className="p-2 bg-purple-500/10 rounded text-sm">
+                            <span className="text-purple-400 font-medium">💡 Playstyle: </span>
+                            <span className="text-slate-300">{build.playstyle}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
