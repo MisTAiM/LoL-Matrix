@@ -10,6 +10,7 @@ import { getChampionGuide, getAllGuides, guideStats } from './data/guidesEngine'
 import { roleImprovement, generalImprovement, rankGoals } from './data/improvement';
 import { runeMath, minorRuneMath, generateRunePage, championRunePresets } from './data/runeEngine';
 import { skillAssessment, learningPaths, practiceLibrary, vodReviewSystem, warmUpRoutines, mentalPerformance, rankCoaching, statsToTrack } from './data/coachingSystem';
+import { communityGuides, GUIDE_CATEGORIES, DIFFICULTY_LEVELS, filterGuides, sortGuides, validateGuide, generateGuideId } from './data/communityGuides';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -92,6 +93,19 @@ export default function App() {
   const [improveRole, setImproveRole] = useState('Jungle');
   const [runeEnemy, setRuneEnemy] = useState(null);
   const [coachingTab, setCoachingTab] = useState('assessment');
+  
+  // Community Guides State
+  const [communityTab, setCommunityTab] = useState('browse');
+  const [guideFilter, setGuideFilter] = useState({ champion: '', role: '', category: '', search: '' });
+  const [guideSort, setGuideSort] = useState('rating');
+  const [selectedGuide, setSelectedGuide] = useState(null);
+  const [userGuides, setUserGuides] = useState([...communityGuides]);
+  const [showGuideForm, setShowGuideForm] = useState(false);
+  const [newGuide, setNewGuide] = useState({
+    title: '', champion: '', role: '', category: 'COMPREHENSIVE', difficulty: 'INTERMEDIATE',
+    introduction: '', prosAndCons: { pros: ['', '', ''], cons: ['', '', ''] },
+    runes: { keystone: '', explanation: '' }, tips: ['', '', ''], author: { username: '', rank: '', server: '' }
+  });
 
   const filteredChamps = useMemo(() =>
     Object.values(CHAMPIONS).map(c => ({ ...c, ...getChampMeta(c) }))
@@ -191,6 +205,7 @@ export default function App() {
               <Tab active={tab === 'practice'} onClick={() => setTab('practice')} icon="🎯" label="Practice" />
               <Tab active={tab === 'improve'} onClick={() => setTab('improve')} icon="📈" label="Improve" />
               <Tab active={tab === 'coaching'} onClick={() => setTab('coaching')} icon="🏆" label="Coaching" />
+              <Tab active={tab === 'community'} onClick={() => setTab('community')} icon="👥" label="Community" />
             </div>
           </div>
         </div>
@@ -1757,6 +1772,374 @@ export default function App() {
                   ))}
                 </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* COMMUNITY GUIDES TAB */}
+        {tab === 'community' && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-center py-6 bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-2xl border border-purple-500/20">
+              <div className="text-5xl mb-3">👥</div>
+              <h2 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Community Guides</h2>
+              <p className="text-slate-400 mt-2">Learn from the best players. Share your knowledge. Climb together.</p>
+              <div className="flex justify-center gap-4 mt-4 text-sm">
+                <div className="px-4 py-2 bg-purple-500/20 rounded-lg"><b className="text-purple-400">{userGuides.length}</b> Guides</div>
+                <div className="px-4 py-2 bg-blue-500/20 rounded-lg"><b className="text-blue-400">{userGuides.reduce((s, g) => s + g.views, 0).toLocaleString()}</b> Views</div>
+                <div className="px-4 py-2 bg-green-500/20 rounded-lg"><b className="text-green-400">{userGuides.reduce((s, g) => s + g.ratings.totalVotes, 0)}</b> Ratings</div>
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex gap-2 justify-center">
+              {['browse', 'submit', 'my-guides'].map(t => (
+                <button key={t} onClick={() => { setCommunityTab(t); setSelectedGuide(null); }} className={`px-6 py-2 rounded-xl font-medium transition-all ${communityTab === t ? 'bg-purple-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}>
+                  {t === 'browse' ? '📚 Browse Guides' : t === 'submit' ? '✏️ Submit Guide' : '📁 My Guides'}
+                </button>
+              ))}
+            </div>
+
+            {/* BROWSE GUIDES */}
+            {communityTab === 'browse' && !selectedGuide && (
+              <div className="space-y-4">
+                {/* Filters */}
+                <Card title="Filter & Search" icon="🔍">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <input type="text" placeholder="Search guides..." value={guideFilter.search} onChange={(e) => setGuideFilter({...guideFilter, search: e.target.value})} className="bg-slate-700 rounded-lg px-3 py-2 text-sm" />
+                    <select value={guideFilter.champion} onChange={(e) => setGuideFilter({...guideFilter, champion: e.target.value})} className="bg-slate-700 rounded-lg px-3 py-2 text-sm">
+                      <option value="">All Champions</option>
+                      {Object.values(CHAMPIONS).sort((a,b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                    <select value={guideFilter.role} onChange={(e) => setGuideFilter({...guideFilter, role: e.target.value})} className="bg-slate-700 rounded-lg px-3 py-2 text-sm">
+                      <option value="">All Roles</option>
+                      {['Top', 'Jungle', 'Mid', 'ADC', 'Support'].map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <select value={guideFilter.category} onChange={(e) => setGuideFilter({...guideFilter, category: e.target.value})} className="bg-slate-700 rounded-lg px-3 py-2 text-sm">
+                      <option value="">All Categories</option>
+                      {Object.entries(GUIDE_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.name}</option>)}
+                    </select>
+                    <select value={guideSort} onChange={(e) => setGuideSort(e.target.value)} className="bg-slate-700 rounded-lg px-3 py-2 text-sm">
+                      <option value="rating">⭐ Top Rated</option>
+                      <option value="views">👁️ Most Viewed</option>
+                      <option value="recent">🕐 Most Recent</option>
+                      <option value="votes">🗳️ Most Votes</option>
+                    </select>
+                  </div>
+                </Card>
+
+                {/* Guide List */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sortGuides(filterGuides(userGuides, guideFilter), guideSort).map(guide => (
+                    <div key={guide.id} onClick={() => setSelectedGuide(guide)} className="bg-slate-800/50 rounded-xl border border-slate-700 hover:border-purple-500/50 cursor-pointer transition-all overflow-hidden">
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <ChampIcon id={Object.values(CHAMPIONS).find(c => c.name === guide.champion)?.id || 'Aatrox'} size={40} />
+                            <div>
+                              <div className="font-bold text-lg">{guide.title}</div>
+                              <div className="text-xs text-slate-400">{guide.champion} • {guide.role}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-1 rounded text-yellow-400 text-sm font-bold">
+                            ⭐ {guide.ratings.overall}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-xl">{guide.author.avatar}</span>
+                          <span className="text-sm">{guide.author.username}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${guide.author.rank === 'Challenger' ? 'bg-red-500/20 text-red-400' : guide.author.rank === 'Grandmaster' ? 'bg-orange-500/20 text-orange-400' : guide.author.rank === 'Master' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                            {guide.author.rank}
+                          </span>
+                          {guide.author.verified && <span className="text-green-400 text-xs">✓ Verified</span>}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded">{GUIDE_CATEGORIES[guide.category]?.icon} {GUIDE_CATEGORIES[guide.category]?.name}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded`} style={{backgroundColor: DIFFICULTY_LEVELS[guide.difficulty]?.color + '20', color: DIFFICULTY_LEVELS[guide.difficulty]?.color}}>
+                            {DIFFICULTY_LEVELS[guide.difficulty]?.icon} {DIFFICULTY_LEVELS[guide.difficulty]?.name}
+                          </span>
+                          {guide.tags.slice(0, 2).map((tag, i) => (
+                            <span key={i} className="text-xs px-2 py-0.5 bg-slate-700 rounded">{tag}</span>
+                          ))}
+                        </div>
+
+                        <div className="flex justify-between text-xs text-slate-400">
+                          <span>👁️ {guide.views.toLocaleString()} views</span>
+                          <span>🗳️ {guide.ratings.totalVotes} votes</span>
+                          <span>🔖 {guide.bookmarks} saves</span>
+                          <span>📅 {guide.updatedAt}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* VIEW SINGLE GUIDE */}
+            {communityTab === 'browse' && selectedGuide && (
+              <div className="space-y-4">
+                <button onClick={() => setSelectedGuide(null)} className="flex items-center gap-2 text-purple-400 hover:text-purple-300">
+                  ← Back to Guides
+                </button>
+
+                {/* Guide Header */}
+                <div className="bg-gradient-to-r from-slate-800 to-slate-800/50 rounded-xl p-6 border border-slate-700">
+                  <div className="flex items-start gap-4">
+                    <ChampIcon id={Object.values(CHAMPIONS).find(c => c.name === selectedGuide.champion)?.id || 'Aatrox'} size={80} />
+                    <div className="flex-1">
+                      <h1 className="text-2xl font-black mb-2">{selectedGuide.title}</h1>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-xl">{selectedGuide.author.avatar}</span>
+                        <div>
+                          <div className="font-medium">{selectedGuide.author.username} {selectedGuide.author.verified && <span className="text-green-400">✓</span>}</div>
+                          <div className="text-xs text-slate-400">{selectedGuide.author.rank} • {selectedGuide.author.server} • {selectedGuide.author.guidesCount} guides</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {selectedGuide.tags.map((tag, i) => <span key={i} className="text-xs px-2 py-1 bg-slate-700 rounded">{tag}</span>)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-4xl font-black text-yellow-400">⭐ {selectedGuide.ratings.overall}</div>
+                      <div className="text-xs text-slate-400">{selectedGuide.ratings.totalVotes} ratings</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rating Breakdown */}
+                <Card title="Ratings" icon="⭐">
+                  <div className="grid grid-cols-4 gap-4 text-center">
+                    {[['Helpful', selectedGuide.ratings.helpful], ['Accurate', selectedGuide.ratings.accuracy], ['Detailed', selectedGuide.ratings.detail], ['Up-to-Date', selectedGuide.ratings.upToDate]].map(([name, val]) => (
+                      <div key={name} className="p-3 bg-slate-700/30 rounded-lg">
+                        <div className="text-2xl font-bold text-yellow-400">{val}</div>
+                        <div className="text-xs text-slate-400">{name}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex justify-center gap-2">
+                    <button className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm">👍 Helpful</button>
+                    <button className="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-sm">👎 Not Helpful</button>
+                    <button className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm">🔖 Save Guide</button>
+                  </div>
+                </Card>
+
+                {/* Introduction */}
+                {selectedGuide.sections?.introduction && (
+                  <Card title="Introduction" icon="📝">
+                    <p className="text-slate-300 leading-relaxed">{selectedGuide.sections.introduction}</p>
+                  </Card>
+                )}
+
+                {/* Pros & Cons */}
+                {selectedGuide.sections?.prosAndCons && (
+                  <Card title="Pros & Cons" icon="⚖️">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-bold text-green-400 mb-2">✓ Strengths</h4>
+                        {selectedGuide.sections.prosAndCons.pros?.map((pro, i) => (
+                          <div key={i} className="p-2 bg-green-500/10 rounded mb-1 text-sm">{pro}</div>
+                        ))}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-red-400 mb-2">✗ Weaknesses</h4>
+                        {selectedGuide.sections.prosAndCons.cons?.map((con, i) => (
+                          <div key={i} className="p-2 bg-red-500/10 rounded mb-1 text-sm">{con}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Matchups */}
+                {selectedGuide.sections?.matchups?.length > 0 && (
+                  <Card title="Matchups" icon="⚔️">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {selectedGuide.sections.matchups.map((m, i) => (
+                        <div key={i} className="p-3 bg-slate-700/30 rounded-lg flex items-center gap-3">
+                          <ChampIcon id={Object.values(CHAMPIONS).find(c => c.name === m.champion)?.id || 'Aatrox'} size={40} />
+                          <div className="flex-1">
+                            <div className="font-medium">{m.champion}</div>
+                            <div className={`text-xs ${m.difficulty === 'Easy' ? 'text-green-400' : m.difficulty === 'Medium' ? 'text-yellow-400' : 'text-red-400'}`}>{m.difficulty}</div>
+                          </div>
+                          <div className="text-sm text-slate-300">{m.tip}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Combos */}
+                {selectedGuide.sections?.combos?.length > 0 && (
+                  <Card title="Combos" icon="💥">
+                    <div className="space-y-3">
+                      {selectedGuide.sections.combos.map((combo, i) => (
+                        <div key={i} className="p-4 bg-slate-700/30 rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-bold text-purple-400">{combo.name}</div>
+                            <span className={`text-xs px-2 py-0.5 rounded ${combo.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' : combo.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>{combo.difficulty}</span>
+                          </div>
+                          <div className="font-mono text-sm bg-slate-800 p-2 rounded">{combo.inputs}</div>
+                          <div className="text-xs text-slate-400 mt-1">Damage: {combo.damage}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Comments */}
+                {selectedGuide.comments?.length > 0 && (
+                  <Card title="Comments" icon="💬">
+                    <div className="space-y-3">
+                      {selectedGuide.comments.map(comment => (
+                        <div key={comment.id} className="p-3 bg-slate-700/30 rounded-lg">
+                          <div className="flex justify-between mb-1">
+                            <span className="font-medium">{comment.author}</span>
+                            <span className="text-xs text-slate-400">{comment.date}</span>
+                          </div>
+                          <p className="text-sm text-slate-300">{comment.content}</p>
+                          <div className="mt-2 text-xs text-green-400">👍 {comment.upvotes}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* SUBMIT GUIDE */}
+            {communityTab === 'submit' && (
+              <div className="space-y-4">
+                <Card title="Submit Your Guide" icon="✏️">
+                  <p className="text-slate-400 mb-4">Share your knowledge with the community! Fill out the form below to submit your guide for review.</p>
+                  
+                  <div className="space-y-4">
+                    {/* Basic Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Guide Title *</label>
+                        <input type="text" value={newGuide.title} onChange={(e) => setNewGuide({...newGuide, title: e.target.value})} placeholder="e.g., Challenger Aatrox Guide - Season 14" className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Your Username *</label>
+                        <input type="text" value={newGuide.author.username} onChange={(e) => setNewGuide({...newGuide, author: {...newGuide.author, username: e.target.value}})} placeholder="Your display name" className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Champion *</label>
+                        <select value={newGuide.champion} onChange={(e) => setNewGuide({...newGuide, champion: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                          <option value="">Select Champion</option>
+                          {Object.values(CHAMPIONS).sort((a,b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Role *</label>
+                        <select value={newGuide.role} onChange={(e) => setNewGuide({...newGuide, role: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                          <option value="">Select Role</option>
+                          {['Top', 'Jungle', 'Mid', 'ADC', 'Support'].map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Your Rank</label>
+                        <select value={newGuide.author.rank} onChange={(e) => setNewGuide({...newGuide, author: {...newGuide.author, rank: e.target.value}})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                          {['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Challenger'].map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Difficulty</label>
+                        <select value={newGuide.difficulty} onChange={(e) => setNewGuide({...newGuide, difficulty: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                          {Object.entries(DIFFICULTY_LEVELS).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Introduction */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Introduction *</label>
+                      <textarea value={newGuide.introduction} onChange={(e) => setNewGuide({...newGuide, introduction: e.target.value})} placeholder="Introduce yourself and your guide..." rows={4} className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                    </div>
+
+                    {/* Pros & Cons */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-green-400">Strengths (Pros)</label>
+                        {newGuide.prosAndCons.pros.map((pro, i) => (
+                          <input key={i} type="text" value={pro} onChange={(e) => { const newPros = [...newGuide.prosAndCons.pros]; newPros[i] = e.target.value; setNewGuide({...newGuide, prosAndCons: {...newGuide.prosAndCons, pros: newPros}}); }} placeholder={`Pro ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
+                        ))}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-red-400">Weaknesses (Cons)</label>
+                        {newGuide.prosAndCons.cons.map((con, i) => (
+                          <input key={i} type="text" value={con} onChange={(e) => { const newCons = [...newGuide.prosAndCons.cons]; newCons[i] = e.target.value; setNewGuide({...newGuide, prosAndCons: {...newGuide.prosAndCons, cons: newCons}}); }} placeholder={`Con ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Runes */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Recommended Keystone</label>
+                      <select value={newGuide.runes.keystone} onChange={(e) => setNewGuide({...newGuide, runes: {...newGuide.runes, keystone: e.target.value}})} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2">
+                        <option value="">Select Keystone</option>
+                        {['Conqueror', 'Lethal Tempo', 'Fleet Footwork', 'Press the Attack', 'Electrocute', 'Dark Harvest', 'Hail of Blades', 'Summon Aery', 'Arcane Comet', 'Phase Rush', 'Grasp of the Undying', 'Aftershock', 'Guardian', 'Glacial Augment', 'First Strike'].map(k => <option key={k} value={k}>{k}</option>)}
+                      </select>
+                      <textarea value={newGuide.runes.explanation} onChange={(e) => setNewGuide({...newGuide, runes: {...newGuide.runes, explanation: e.target.value}})} placeholder="Explain why this rune setup..." rows={2} className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                    </div>
+
+                    {/* Tips */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Key Tips</label>
+                      {newGuide.tips.map((tip, i) => (
+                        <input key={i} type="text" value={tip} onChange={(e) => { const newTips = [...newGuide.tips]; newTips[i] = e.target.value; setNewGuide({...newGuide, tips: newTips}); }} placeholder={`Tip ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
+                      ))}
+                    </div>
+
+                    {/* Submit */}
+                    <div className="flex gap-3">
+                      <button onClick={() => {
+                        const validation = validateGuide({...newGuide, sections: { introduction: newGuide.introduction }});
+                        if (!validation.valid) {
+                          alert('Please fix: ' + validation.errors.join(', '));
+                          return;
+                        }
+                        const guide = {
+                          id: generateGuideId(),
+                          ...newGuide,
+                          sections: { introduction: newGuide.introduction, prosAndCons: newGuide.prosAndCons },
+                          author: { ...newGuide.author, id: 'user-new', avatar: '👤', verified: false, guidesCount: 1, totalUpvotes: 0 },
+                          tags: ['Season 14', 'Community'],
+                          patch: VERSION,
+                          createdAt: new Date().toISOString().split('T')[0],
+                          updatedAt: new Date().toISOString().split('T')[0],
+                          ratings: { overall: 0, helpful: 0, accuracy: 0, detail: 0, upToDate: 0, totalVotes: 0 },
+                          comments: [],
+                          views: 0,
+                          bookmarks: 0
+                        };
+                        setUserGuides([guide, ...userGuides]);
+                        setNewGuide({ title: '', champion: '', role: '', category: 'COMPREHENSIVE', difficulty: 'INTERMEDIATE', introduction: '', prosAndCons: { pros: ['', '', ''], cons: ['', '', ''] }, runes: { keystone: '', explanation: '' }, tips: ['', '', ''], author: { username: '', rank: '', server: '' } });
+                        setCommunityTab('browse');
+                        alert('Guide submitted successfully!');
+                      }} className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold">
+                        📤 Submit Guide
+                      </button>
+                      <button onClick={() => setCommunityTab('browse')} className="px-6 py-3 bg-slate-600 hover:bg-slate-500 rounded-xl">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* MY GUIDES */}
+            {communityTab === 'my-guides' && (
+              <Card title="My Guides" icon="📁">
+                <p className="text-slate-400 text-center py-8">You haven't submitted any guides yet. <button onClick={() => setCommunityTab('submit')} className="text-purple-400 underline">Submit your first guide!</button></p>
+              </Card>
             )}
           </div>
         )}
