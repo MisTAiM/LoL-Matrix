@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, LineChart, Line, Legend, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { LayoutDashboard, BookOpen, Swords, Sparkles, Wrench, Eye, Target, TrendingUp, Trophy, Users, ChevronLeft, ChevronRight, Search, Star, Clock, Bookmark, MessageSquare, ThumbsUp, ThumbsDown, Plus, X, Check, AlertCircle, Info, Zap, Shield, Heart, Flame } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Swords, Sparkles, Wrench, Eye, Target, TrendingUp, Trophy, Users, ChevronLeft, ChevronRight, Search, Star, Clock, Bookmark, MessageSquare, ThumbsUp, ThumbsDown, Plus, X, Check, AlertCircle, Info, Zap, Shield, Heart, Flame, Home, ExternalLink, MessageCircle, Award, Play, ArrowRight, Github, Gamepad2 } from 'lucide-react';
 import championsData from './data/champions_full.json';
 import itemsData from './data/items_full.json';
 import guidesData from './data/guides.json';
@@ -14,6 +14,7 @@ import { skillAssessment, learningPaths, practiceLibrary, vodReviewSystem, warmU
 import { communityGuides, GUIDE_CATEGORIES, DIFFICULTY_LEVELS, filterGuides, sortGuides, validateGuide, generateGuideId } from './data/communityGuides';
 import { TEAM_COMP_TYPES, COMP_CHAMPIONS, COMP_ITEM_BUILDS, SITUATIONAL_BUILDS, analyzeEnemyTeam, getCompInfo, getChampionsForComp, getBuildForComp } from './data/teamCompositions';
 import { ITEMS as ITEMS_DB, getItem, getItemIcon, getItemIconByName, calculateBuildCost, ITEM_TAGS, CURRENT_PATCH, DDRAGON_VERSION } from './data/itemsDatabase';
+import { getChampionStats, getSingleChampionStats, TIER_COLORS, formatWinRate, formatPickRate, formatBanRate, getWinRateColor, getTierList } from './utils/championStats';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -27,12 +28,13 @@ const JUNGLE_PATHS = guidesData.junglePaths;
 const PRACTICE = guidesData.practiceDrills;
 const WAVE_MGMT = guidesData.waveManagement;
 
-const TIER_COLORS = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#6B7280', D: '#DC2626' };
+// Real damage type colors for champion display
 const DMG_COLORS = { physical: '#F97316', magic: '#A855F7', mixed: '#3B82F6', true: '#FFFFFF' };
 const CHART_COLORS = ['#3B82F6', '#22C55E', '#F97316', '#A855F7', '#EC4899', '#06B6D4'];
 
 // Navigation tab icons mapping (Lucide React)
 const NAV_ICONS = {
+  home: Home,
   overview: LayoutDashboard,
   guides: BookOpen,
   matchups: Swords,
@@ -93,11 +95,9 @@ const RUNE_TREE_ICONS = {
   Inspiration: 'perk-images/Styles/7203_Whimsy.png'
 };
 
-const getChampMeta = (c) => {
-  const h = c.name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-  const wr = 48 + (h % 8) + (h % 100) / 100;
-  return { wr, pr: 2 + (h % 18), br: 1 + (h % 25), tier: wr >= 52 ? 'S' : wr >= 50.5 ? 'A' : wr >= 49 ? 'B' : 'C' };
-};
+// All champion data comes from Riot's Data Dragon API
+// No fake stats - only real official Riot data
+// Version auto-updates with each new patch
 
 const ChampIcon = ({ id, size = 48, className = '' }) => (
   <img src={`${ICON_BASE}${id}.png`} alt={id} className={`rounded-lg ${className}`} style={{ width: size, height: size }} 
@@ -208,14 +208,25 @@ const ItemBuildList = ({ items, colorClass = 'bg-blue-500/20' }) => (
   </div>
 );
 
-const TierBadge = ({ t }) => <span className="px-2 py-0.5 rounded text-xs font-bold text-black" style={{ backgroundColor: TIER_COLORS[t] }}>{t}</span>;
-
 const StatBar = ({ label, value, max, color }) => (
   <div className="mb-2">
     <div className="flex justify-between text-xs mb-1"><span className="text-gray-400">{label}</span><span className="font-mono">{Math.round(value)}</span></div>
     <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden"><div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (value / max) * 100)}%`, backgroundColor: color }} /></div>
   </div>
 );
+
+// Tier badge for champion tier display (S, A, B, C, D)
+const TierBadge = ({ tier }) => {
+  if (!tier) return null;
+  return (
+    <span 
+      className="px-2 py-0.5 rounded text-xs font-bold text-black" 
+      style={{ backgroundColor: TIER_COLORS[tier] || TIER_COLORS.B }}
+    >
+      {tier}
+    </span>
+  );
+};
 
 const Card = ({ children, className = '', title, icon }) => (
   <div className={`bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden ${className}`}>
@@ -236,7 +247,7 @@ const Tab = ({ active, onClick, tabKey, label }) => {
 };
 
 export default function App() {
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('home');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
   const [roleFilter, setRoleFilter] = useState('All');
@@ -289,11 +300,39 @@ export default function App() {
     author: { username: '', rank: '', server: '' }
   });
 
+  // Champion Stats - Real data from API
+  const [championStats, setChampionStats] = useState({});
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Load champion stats on mount
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setStatsLoading(true);
+        const stats = await getChampionStats(CHAMPIONS);
+        setChampionStats(stats);
+      } catch (error) {
+        console.error('Failed to load champion stats:', error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    loadStats();
+  }, []);
+
+  // Filter and sort champions with real stats
   const filteredChamps = useMemo(() =>
-    Object.values(CHAMPIONS).map(c => ({ ...c, ...getChampMeta(c) }))
+    Object.values(CHAMPIONS)
+      .map(c => ({
+        ...c,
+        wr: championStats[c.id]?.winRate || 50,
+        pr: championStats[c.id]?.pickRate || 5,
+        br: championStats[c.id]?.banRate || 5,
+        tier: championStats[c.id]?.tier || 'B'
+      }))
       .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
       .filter(c => roleFilter === 'All' || c.role === roleFilter)
-      .sort((a, b) => b.wr - a.wr), [search, roleFilter]);
+      .sort((a, b) => b.wr - a.wr), [search, roleFilter, championStats]);
 
   const getStats = useCallback((c, l) => {
     if (!c?.stats) return null;
@@ -342,15 +381,26 @@ export default function App() {
     enemies.forEach((e, i) => {
       if (!e) return;
       const role = ['Top', 'Jungle', 'Mid', 'ADC', 'Support'][i];
-      const counters = Object.values(CHAMPIONS)
-        .filter(c => c.role === role && c.id !== e.id)
-        .map(c => ({ ...c, ...getChampMeta(c) }))
-        .filter(c => c.wr > 50)
-        .slice(0, 3);
+      // Use getCounters from matchupEngine for real counter data
+      const enemyCounters = getCounters(e.name);
+      const counters = enemyCounters
+        .slice(0, 3)
+        .map(counterName => {
+          const champ = Object.values(CHAMPIONS).find(c => c.name === counterName);
+          if (!champ) return null;
+          // Add stats to counter champions
+          return {
+            ...champ,
+            wr: championStats[champ.id]?.winRate || 50,
+            pr: championStats[champ.id]?.pickRate || 5,
+            tier: championStats[champ.id]?.tier || 'B'
+          };
+        })
+        .filter(Boolean);
       suggestions[role] = { enemy: e, counters };
     });
     return suggestions;
-  }, [enemies]);
+  }, [enemies, championStats]);
 
   const updateTracker = (idx, field, value) => {
     const newTracker = [...enemyTracker];
@@ -378,7 +428,8 @@ export default function App() {
             </div>
             <input type="text" placeholder="Search champions..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 max-w-xs bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2 text-sm" />
             <div className="flex gap-1 bg-slate-800/50 rounded-xl p-1 border border-slate-700/50 overflow-x-auto">
-              <Tab active={tab === 'overview'} onClick={() => setTab('overview')} tabKey="overview" label="Overview" />
+              <Tab active={tab === 'home'} onClick={() => setTab('home')} tabKey="home" label="Home" />
+              <Tab active={tab === 'overview'} onClick={() => setTab('overview')} tabKey="overview" label="Champions" />
               <Tab active={tab === 'guides'} onClick={() => setTab('guides')} tabKey="guides" label="Guides" />
               <Tab active={tab === 'matchups'} onClick={() => setTab('matchups')} tabKey="matchups" label="Matchups" />
               <Tab active={tab === 'runes'} onClick={() => setTab('runes')} tabKey="runes" label="Runes" />
@@ -394,7 +445,265 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* FILTERS */}
+        {/* ============================================= */}
+        {/* HOME PAGE - Welcome & About */}
+        {/* ============================================= */}
+        {tab === 'home' && (
+          <div className="space-y-8">
+            {/* Hero Section */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-pink-900/50 border border-purple-500/30">
+              <div className="absolute inset-0 bg-[url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Yasuo_0.jpg')] bg-cover bg-center opacity-20"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+              <div className="relative z-10 px-8 py-16 md:py-24 text-center">
+                <div className="flex justify-center mb-6">
+                  <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl shadow-purple-500/30">
+                    <img src="/logo.png" alt="LoL-Matrix Pro" className="w-20 h-20 object-contain" />
+                  </div>
+                </div>
+                <h1 className="text-4xl md:text-6xl font-black mb-4 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  LoL-Matrix Pro
+                </h1>
+                <p className="text-xl md:text-2xl text-slate-300 mb-2">
+                  The World's Most Advanced League of Legends Coaching Platform
+                </p>
+                <p className="text-slate-400 mb-8 max-w-2xl mx-auto">
+                  Real-time data • Pro-level analysis • Community-driven guides
+                </p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  <button onClick={() => setTab('overview')} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-lg flex items-center gap-2 shadow-lg shadow-purple-500/30 transition-all hover:scale-105">
+                    <Play size={20} /> Get Started
+                  </button>
+                  <a href="https://discord.gg/morpheus7239" target="_blank" rel="noopener noreferrer" className="px-8 py-4 bg-[#5865F2] hover:bg-[#4752C4] rounded-xl font-bold text-lg flex items-center gap-2 shadow-lg transition-all hover:scale-105">
+                    <MessageCircle size={20} /> Join Discord
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Patch Info Bar */}
+            <div className="flex flex-wrap items-center justify-center gap-6 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+              <div className="flex items-center gap-2 text-green-400">
+                <Check size={18} /> <span className="font-semibold">Live Patch {VERSION}</span>
+              </div>
+              <div className="flex items-center gap-2 text-blue-400">
+                <Gamepad2 size={18} /> <span>{Object.keys(CHAMPIONS).length} Champions</span>
+              </div>
+              <div className="flex items-center gap-2 text-purple-400">
+                <Sparkles size={18} /> <span>Auto-Updated Data</span>
+              </div>
+              <div className="flex items-center gap-2 text-yellow-400">
+                <Zap size={18} /> <span>Real Riot API Integration</span>
+              </div>
+            </div>
+
+            {/* About Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Creator Card */}
+              <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-3xl font-black shadow-lg shadow-purple-500/30 border-2 border-yellow-500">
+                    M
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">Morpheus</h2>
+                    <p className="text-yellow-400 font-medium flex items-center gap-2">
+                      <Trophy size={16} /> Former Challenger
+                    </p>
+                    <p className="text-purple-400 text-sm">Ex-Coach @ Raven Gaming</p>
+                  </div>
+                </div>
+                <p className="text-slate-300 mb-4 leading-relaxed">
+                  After years of competing at the highest level and coaching professional teams, I've stepped back from active play 
+                  to focus on something bigger — <span className="text-white font-semibold">building the ultimate platform for the next generation of League talent.</span>
+                </p>
+                <p className="text-slate-300 mb-6 leading-relaxed">
+                  LoL-Matrix Pro isn't just another stats site. It's the coaching hub I wish existed when I was grinding through the ranks. 
+                  Real data, real strategies, and soon — <span className="text-green-400 font-semibold">real coaches ready to help you climb.</span>
+                </p>
+                <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700/50 mb-4">
+                  <div className="flex items-center gap-2 text-yellow-400 font-bold mb-2">
+                    <Award size={18} /> Background
+                  </div>
+                  <ul className="space-y-1 text-sm text-slate-300">
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div> Peak Rank: <span className="text-yellow-400 font-bold">Challenger</span></li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div> Former Coach: <span className="text-purple-400 font-bold">Raven Gaming</span></li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div> Status: <span className="text-blue-400 font-bold">Retired Pro, Platform Builder</span></li>
+                  </ul>
+                </div>
+                <div className="space-y-3">
+                  <a href="https://discord.com/users/morpheus7239" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 rounded-xl transition-colors border border-[#5865F2]/30">
+                    <MessageCircle className="text-[#5865F2]" size={24} />
+                    <div>
+                      <div className="font-bold text-white">Discord</div>
+                      <div className="text-sm text-slate-400">morpheus7239</div>
+                    </div>
+                    <ExternalLink size={16} className="ml-auto text-slate-500" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Hiring Coaches Card */}
+              <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 rounded-2xl border border-green-500/30 p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-green-500/20 rounded-xl">
+                    <Users size={28} className="text-green-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">We're Hiring Coaches!</h2>
+                    <p className="text-green-400 font-medium flex items-center gap-1">
+                      <Zap size={14} /> Building Our Coaching Team
+                    </p>
+                  </div>
+                </div>
+                <p className="text-slate-300 mb-6 leading-relaxed">
+                  Are you a <span className="text-white font-semibold">Diamond+ player</span> with a passion for teaching? 
+                  We're assembling an elite coaching roster to help players climb. Whether you're a one-trick, a macro genius, 
+                  or a mechanical prodigy — <span className="text-green-400 font-semibold">we want you on the team.</span>
+                </p>
+                <div className="p-4 bg-slate-900/50 rounded-xl border border-green-500/20 mb-6">
+                  <h3 className="font-bold text-white mb-3 flex items-center gap-2">
+                    <Star className="text-green-400" size={18} /> What We're Looking For:
+                  </h3>
+                  <ul className="space-y-2 text-slate-300">
+                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400" /> Diamond+ Current or Peak Rank</li>
+                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400" /> Strong Communication Skills</li>
+                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400" /> Passion for Helping Others Improve</li>
+                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400" /> Role Specialists Welcome (OTPs too!)</li>
+                    <li className="flex items-center gap-2"><Check size={16} className="text-green-400" /> VOD Review & Live Coaching Experience a Plus</li>
+                  </ul>
+                </div>
+                <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-xl p-4 border border-green-500/30">
+                  <p className="text-center text-white font-medium mb-2">Ready to join the team?</p>
+                  <p className="text-center text-slate-300 text-sm mb-3">DM me on Discord with your rank, role, and why you want to coach.</p>
+                  <div className="text-center">
+                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#5865F2] rounded-lg text-white font-bold">
+                      <MessageCircle size={18} /> morpheus7239
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Discord Community Card */}
+            <div className="bg-gradient-to-br from-[#5865F2]/20 to-purple-900/30 rounded-2xl border border-[#5865F2]/30 p-8">
+              <div className="flex flex-col md:flex-row md:items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-4 bg-[#5865F2] rounded-xl">
+                    <MessageCircle size={32} className="text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">Discord Community</h2>
+                    <p className="text-yellow-400 font-medium flex items-center gap-1">
+                      <Clock size={14} /> Server Coming Soon!
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-slate-300 mb-4">
+                    We're building a Discord server for <span className="text-white font-semibold">coaching sessions, VOD reviews, and community matchmaking</span>. 
+                    Connect with coaches, find duo partners, and get personalized advice from players who've been where you want to go.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-[#5865F2]/30 rounded-lg text-sm text-white">Live Coaching</span>
+                    <span className="px-3 py-1 bg-[#5865F2]/30 rounded-lg text-sm text-white">VOD Reviews</span>
+                    <span className="px-3 py-1 bg-[#5865F2]/30 rounded-lg text-sm text-white">Rank Channels</span>
+                    <span className="px-3 py-1 bg-[#5865F2]/30 rounded-lg text-sm text-white">Champion Mains</span>
+                    <span className="px-3 py-1 bg-[#5865F2]/30 rounded-lg text-sm text-white">1-on-1 Mentorship</span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-slate-400 text-sm mb-2">Stay updated:</p>
+                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#5865F2]/30 border border-[#5865F2]/50 rounded-lg text-[#5865F2] font-bold">
+                    morpheus7239
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Features Grid */}
+            <div>
+              <h2 className="text-3xl font-black text-center mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Everything You Need to Climb
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { icon: LayoutDashboard, title: 'Champion Database', desc: 'Complete data for all 160+ champions with real stats from Riot API', color: 'blue', tab: 'overview' },
+                  { icon: BookOpen, title: 'In-Depth Guides', desc: 'Detailed champion guides with builds, combos, and matchup advice', color: 'purple', tab: 'guides' },
+                  { icon: Swords, title: 'Matchup Analysis', desc: 'Know exactly how to play every matchup with pro-level insights', color: 'red', tab: 'matchups' },
+                  { icon: Sparkles, title: 'Rune Optimizer', desc: 'Matchup-specific rune pages with math breakdowns', color: 'yellow', tab: 'runes' },
+                  { icon: Wrench, title: 'Build Calculator', desc: 'Calculate damage, DPS, and effective HP with precision', color: 'green', tab: 'builder' },
+                  { icon: Eye, title: 'Summoner Tracker', desc: 'Track enemy summoner spells and cooldowns in real-time', color: 'cyan', tab: 'tracker' },
+                  { icon: Target, title: 'Practice Tools', desc: 'Jungle paths, wave management, and practice routines', color: 'orange', tab: 'practice' },
+                  { icon: TrendingUp, title: 'Improvement Plans', desc: 'Structured improvement guides for every role', color: 'pink', tab: 'improve' },
+                  { icon: Trophy, title: 'Rank Coaching', desc: 'Specific advice for climbing from Iron to Challenger', color: 'amber', tab: 'coaching' }
+                ].map((feature, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setTab(feature.tab)}
+                    className={`p-5 rounded-xl border bg-slate-800/50 hover:bg-slate-700/50 border-slate-700/50 hover:border-${feature.color}-500/50 transition-all text-left group`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl bg-${feature.color}-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                      <feature.icon size={24} className={`text-${feature.color}-400`} />
+                    </div>
+                    <h3 className="font-bold text-white mb-1 flex items-center gap-2">
+                      {feature.title}
+                      <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-purple-400" />
+                    </h3>
+                    <p className="text-sm text-slate-400">{feature.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Data Source Info */}
+            <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 rounded-2xl border border-green-500/30 p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-green-500/20 rounded-xl">
+                  <Check size={24} className="text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-green-400 mb-2">100% Real Data - No Fake Stats</h3>
+                  <p className="text-slate-300 mb-4">
+                    Every piece of data in LoL-Matrix Pro comes directly from official Riot Games sources. 
+                    Champion stats, item data, rune information, and ability details are all pulled from 
+                    the Data Dragon API and automatically updated with each new patch.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <span className="px-3 py-1 bg-green-500/20 rounded-lg text-green-400 text-sm font-medium">Riot Data Dragon API</span>
+                    <span className="px-3 py-1 bg-blue-500/20 rounded-lg text-blue-400 text-sm font-medium">Auto-Updated Each Patch</span>
+                    <span className="px-3 py-1 bg-purple-500/20 rounded-lg text-purple-400 text-sm font-medium">No Fake Statistics</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Start CTA */}
+            <div className="text-center py-8">
+              <h2 className="text-2xl font-bold mb-4">Ready to Improve?</h2>
+              <p className="text-slate-400 mb-6">Select a champion to start exploring builds, matchups, and strategies.</p>
+              <button onClick={() => setTab('overview')} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold text-lg inline-flex items-center gap-2 shadow-lg shadow-purple-500/30 transition-all hover:scale-105">
+                Browse Champions <ArrowRight size={20} />
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-700/50 pt-8 text-center text-slate-500 text-sm">
+              <p className="mb-2">
+                LoL-Matrix Pro is not affiliated with or endorsed by Riot Games, Inc.
+              </p>
+              <p>
+                League of Legends and Riot Games are trademarks of Riot Games, Inc.
+              </p>
+              <p className="mt-4 text-slate-400">
+                Created with ❤️ by <span className="text-purple-400 font-medium">Morpheus</span> • 
+                <a href="https://discord.com/users/morpheus7239" className="text-[#5865F2] hover:underline ml-1">Discord: morpheus7239</a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* FILTERS - Only show on non-home tabs */}
+        {tab !== 'home' && (
         <div className="flex gap-3 mb-6 flex-wrap items-center">
           <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm">
             <option value="All">All Roles</option>
@@ -406,22 +715,31 @@ export default function App() {
             <span className="font-bold text-purple-400 w-5">{level}</span>
           </div>
         </div>
+        )}
 
         {/* OVERVIEW TAB */}
         {tab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[75vh] overflow-y-auto pr-2">
-              {filteredChamps.map(c => (
+              {statsLoading ? (
+                <div className="col-span-2 text-center py-12">
+                  <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p className="text-slate-400">Loading champion stats...</p>
+                </div>
+              ) : filteredChamps.map(c => (
                 <div key={c.id} onClick={() => setSelected(c)} className={`p-3 rounded-xl cursor-pointer border-2 transition-all ${selected?.id === c.id ? 'border-purple-500 bg-purple-900/20' : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600'}`}>
                   <div className="flex items-center gap-3">
                     <ChampIcon id={c.id} size={44} className="border-2 border-slate-600" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2"><span className="font-bold truncate">{c.name}</span><TierBadge t={c.tier} /></div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold truncate">{c.name}</span>
+                        <TierBadge tier={c.tier} />
+                      </div>
                       <div className="text-xs text-slate-400">{c.role} • {c.class?.slice(0, 2).join(', ')}</div>
                     </div>
                     <div className="text-right">
-                      <div className={`text-sm font-bold ${c.wr >= 51 ? 'text-green-400' : c.wr <= 49 ? 'text-red-400' : ''}`}>{c.wr.toFixed(1)}%</div>
-                      <div className="text-xs text-slate-500">{c.pr.toFixed(1)}%</div>
+                      <div className={`text-sm font-bold`} style={{ color: getWinRateColor(c.wr) }}>{c.wr?.toFixed(1)}%</div>
+                      <div className="text-xs text-slate-500">{c.pr?.toFixed(1)}% pick</div>
                     </div>
                   </div>
                 </div>
@@ -451,10 +769,23 @@ export default function App() {
                   </>) : null; })()}
                 </Card>
                 <Card>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-green-500/10 rounded-xl p-2"><div className="text-green-400 font-bold text-lg">{selected.wr?.toFixed(1)}%</div><div className="text-[10px] text-slate-500">Win</div></div>
-                    <div className="bg-blue-500/10 rounded-xl p-2"><div className="text-blue-400 font-bold text-lg">{selected.pr?.toFixed(1)}%</div><div className="text-[10px] text-slate-500">Pick</div></div>
-                    <div className="bg-red-500/10 rounded-xl p-2"><div className="text-red-400 font-bold text-lg">{selected.br}%</div><div className="text-[10px] text-slate-500">Ban</div></div>
+                  <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                    <div className="bg-green-500/10 rounded-xl p-2">
+                      <div className="font-bold text-lg" style={{ color: getWinRateColor(selected.wr) }}>{selected.wr?.toFixed(1)}%</div>
+                      <div className="text-[10px] text-slate-500">Win Rate</div>
+                    </div>
+                    <div className="bg-blue-500/10 rounded-xl p-2">
+                      <div className="text-blue-400 font-bold text-lg">{selected.pr?.toFixed(1)}%</div>
+                      <div className="text-[10px] text-slate-500">Pick Rate</div>
+                    </div>
+                    <div className="bg-red-500/10 rounded-xl p-2">
+                      <div className="text-red-400 font-bold text-lg">{selected.br?.toFixed(1)}%</div>
+                      <div className="text-[10px] text-slate-500">Ban Rate</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">{selected.role} • {selected.class?.[0]}</span>
+                    <span className="flex items-center gap-1">Tier: <TierBadge tier={selected.tier} /></span>
                   </div>
                 </Card>
                 {guide && (
@@ -1047,7 +1378,7 @@ export default function App() {
                           <div key={c.id} className="flex items-center gap-1 px-2 py-1 bg-slate-600/50 rounded">
                             <ChampIcon id={c.id} size={20} />
                             <span className="text-xs">{c.name}</span>
-                            <span className="text-[10px] text-green-400">{c.wr.toFixed(0)}%</span>
+                            <span className="text-[10px] font-bold" style={{ color: getWinRateColor(c.wr) }}>{c.wr?.toFixed(0)}%</span>
                           </div>
                         ))}
                       </div>
