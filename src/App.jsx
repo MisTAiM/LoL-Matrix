@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, LineChart, Line, Legend, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { LayoutDashboard, BookOpen, Swords, Sparkles, Wrench, Eye, Target, TrendingUp, Trophy, Users, ChevronLeft, ChevronRight, Search, Star, Clock, Bookmark, MessageSquare, ThumbsUp, ThumbsDown, Plus, X, Check, AlertCircle, Info, Zap, Shield, Heart, Flame } from 'lucide-react';
 import championsData from './data/champions_full.json';
 import itemsData from './data/items_full.json';
 import guidesData from './data/guides.json';
@@ -12,7 +13,7 @@ import { runeMath, minorRuneMath, generateRunePage, championRunePresets } from '
 import { skillAssessment, learningPaths, practiceLibrary, vodReviewSystem, warmUpRoutines, mentalPerformance, rankCoaching, statsToTrack } from './data/coachingSystem';
 import { communityGuides, GUIDE_CATEGORIES, DIFFICULTY_LEVELS, filterGuides, sortGuides, validateGuide, generateGuideId } from './data/communityGuides';
 import { TEAM_COMP_TYPES, COMP_CHAMPIONS, COMP_ITEM_BUILDS, SITUATIONAL_BUILDS, analyzeEnemyTeam, getCompInfo, getChampionsForComp, getBuildForComp } from './data/teamCompositions';
-import { ITEMS as ITEMS_DB, getItem, getItemIcon, getItemIconByName, calculateBuildCost, ITEM_TAGS, CURRENT_PATCH } from './data/itemsDatabase';
+import { ITEMS as ITEMS_DB, getItem, getItemIcon, getItemIconByName, calculateBuildCost, ITEM_TAGS, CURRENT_PATCH, DDRAGON_VERSION } from './data/itemsDatabase';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -30,6 +31,68 @@ const TIER_COLORS = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#6B7280', D:
 const DMG_COLORS = { physical: '#F97316', magic: '#A855F7', mixed: '#3B82F6', true: '#FFFFFF' };
 const CHART_COLORS = ['#3B82F6', '#22C55E', '#F97316', '#A855F7', '#EC4899', '#06B6D4'];
 
+// Navigation tab icons mapping (Lucide React)
+const NAV_ICONS = {
+  overview: LayoutDashboard,
+  guides: BookOpen,
+  matchups: Swords,
+  runes: Sparkles,
+  builder: Wrench,
+  tracker: Eye,
+  practice: Target,
+  improve: TrendingUp,
+  coaching: Trophy,
+  community: Users
+};
+
+// Summoner Spell Data Dragon mapping
+const SUMMONER_SPELLS = {
+  Flash: { id: 'SummonerFlash', cooldown: 300 },
+  Ignite: { id: 'SummonerDot', cooldown: 180 },
+  Heal: { id: 'SummonerHeal', cooldown: 240 },
+  Teleport: { id: 'SummonerTeleport', cooldown: 360 },
+  Exhaust: { id: 'SummonerExhaust', cooldown: 210 },
+  Barrier: { id: 'SummonerBarrier', cooldown: 180 },
+  Cleanse: { id: 'SummonerBoost', cooldown: 210 },
+  Ghost: { id: 'SummonerHaste', cooldown: 210 },
+  Smite: { id: 'SummonerSmite', cooldown: 90 },
+  Mark: { id: 'SummonerSnowball', cooldown: 80 }
+};
+
+// Keystone rune icons mapping
+const KEYSTONE_ICONS = {
+  // Precision
+  'Press the Attack': 'perk-images/Styles/Precision/PressTheAttack/PressTheAttack.png',
+  'Lethal Tempo': 'perk-images/Styles/Precision/LethalTempo/LethalTempoTemp.png',
+  'Fleet Footwork': 'perk-images/Styles/Precision/FleetFootwork/FleetFootwork.png',
+  'Conqueror': 'perk-images/Styles/Precision/Conqueror/Conqueror.png',
+  // Domination
+  'Electrocute': 'perk-images/Styles/Domination/Electrocute/Electrocute.png',
+  'Dark Harvest': 'perk-images/Styles/Domination/DarkHarvest/DarkHarvest.png',
+  'Hail of Blades': 'perk-images/Styles/Domination/HailOfBlades/HailOfBlades.png',
+  // Sorcery
+  'Summon Aery': 'perk-images/Styles/Sorcery/SummonAery/SummonAery.png',
+  'Arcane Comet': 'perk-images/Styles/Sorcery/ArcaneComet/ArcaneComet.png',
+  'Phase Rush': 'perk-images/Styles/Sorcery/PhaseRush/PhaseRush.png',
+  // Resolve
+  'Grasp of the Undying': 'perk-images/Styles/Resolve/GraspOfTheUndying/GraspOfTheUndying.png',
+  'Aftershock': 'perk-images/Styles/Resolve/Aftershock/Aftershock.png',
+  'Guardian': 'perk-images/Styles/Resolve/Guardian/Guardian.png',
+  // Inspiration
+  'Glacial Augment': 'perk-images/Styles/Inspiration/GlacialAugment/GlacialAugment.png',
+  'Unsealed Spellbook': 'perk-images/Styles/Inspiration/UnsealedSpellbook/UnsealedSpellbook.png',
+  'First Strike': 'perk-images/Styles/Inspiration/FirstStrike/FirstStrike.png'
+};
+
+// Rune tree icons
+const RUNE_TREE_ICONS = {
+  Precision: 'perk-images/Styles/7201_Precision.png',
+  Domination: 'perk-images/Styles/7200_Domination.png',
+  Sorcery: 'perk-images/Styles/7202_Sorcery.png',
+  Resolve: 'perk-images/Styles/7204_Resolve.png',
+  Inspiration: 'perk-images/Styles/7203_Whimsy.png'
+};
+
 const getChampMeta = (c) => {
   const h = c.name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
   const wr = 48 + (h % 8) + (h % 100) / 100;
@@ -45,6 +108,74 @@ const ItemIcon = ({ id, size = 32 }) => (
   <img src={`${ITEM_ICON_BASE}${id}.png`} alt={id} className="rounded" style={{ width: size, height: size }}
     onError={(e) => { e.target.src = `https://via.placeholder.com/${size}?text=?`; }} />
 );
+
+// Summoner Spell Icon - uses Data Dragon API
+const SpellIcon = ({ spell, size = 28, className = '' }) => {
+  const spellData = SUMMONER_SPELLS[spell];
+  if (!spellData) return <div className={`bg-slate-600 rounded flex items-center justify-center text-xs ${className}`} style={{ width: size, height: size }}>?</div>;
+  return (
+    <img 
+      src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/spell/${spellData.id}.png`}
+      alt={spell}
+      className={`rounded ${className}`}
+      style={{ width: size, height: size }}
+      onError={(e) => { e.target.src = `https://via.placeholder.com/${size}?text=${spell?.[0] || '?'}`; }}
+      title={spell}
+    />
+  );
+};
+
+// Keystone Rune Icon - uses Data Dragon API
+const KeystoneIcon = ({ keystone, size = 32, className = '' }) => {
+  const iconPath = KEYSTONE_ICONS[keystone];
+  if (!iconPath) return <div className={`bg-yellow-500/20 rounded-full flex items-center justify-center ${className}`} style={{ width: size, height: size }}><Sparkles size={size * 0.6} className="text-yellow-400" /></div>;
+  return (
+    <img 
+      src={`https://ddragon.leagueoflegends.com/cdn/img/${iconPath}`}
+      alt={keystone}
+      className={`rounded-full ${className}`}
+      style={{ width: size, height: size }}
+      onError={(e) => { e.target.style.display = 'none'; }}
+      title={keystone}
+    />
+  );
+};
+
+// Rune Tree Icon
+const RuneTreeIcon = ({ tree, size = 24, className = '' }) => {
+  const iconPath = RUNE_TREE_ICONS[tree];
+  if (!iconPath) return <div className={`bg-purple-500/20 rounded-full flex items-center justify-center ${className}`} style={{ width: size, height: size }}>⬢</div>;
+  return (
+    <img 
+      src={`https://ddragon.leagueoflegends.com/cdn/img/${iconPath}`}
+      alt={tree}
+      className={`${className}`}
+      style={{ width: size, height: size }}
+      title={tree}
+    />
+  );
+};
+
+// Champion Ability Icon - uses Data Dragon API
+const AbilityIcon = ({ championId, ability, size = 32, className = '' }) => {
+  // Ability should be 'P', 'Q', 'W', 'E', or 'R'
+  const abilityMap = { P: 'passive', Q: 'Q', W: 'W', E: 'E', R: 'R' };
+  const imgType = ability === 'P' ? 'passive' : 'spell';
+  const imgName = ability === 'P' ? `${championId}_P.png` : `${championId}${ability}.png`;
+  
+  return (
+    <img 
+      src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/${imgType}/${imgName}`}
+      alt={`${championId} ${ability}`}
+      className={`rounded ${className}`}
+      style={{ width: size, height: size }}
+      onError={(e) => { 
+        e.target.src = `https://via.placeholder.com/${size}?text=${ability}`;
+      }}
+      title={`${ability} Ability`}
+    />
+  );
+};
 
 // Item icon by NAME - uses Data Dragon API images, no emojis
 const ItemIconByName = ({ name, size = 28, className = '' }) => {
@@ -93,11 +224,16 @@ const Card = ({ children, className = '', title, icon }) => (
   </div>
 );
 
-const Tab = ({ active, onClick, icon, label }) => (
-  <button onClick={onClick} className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${active ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}>
-    {icon} <span className="hidden sm:inline ml-1">{label}</span>
-  </button>
-);
+// Navigation Tab with Lucide icons
+const Tab = ({ active, onClick, tabKey, label }) => {
+  const IconComponent = NAV_ICONS[tabKey];
+  return (
+    <button onClick={onClick} className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${active ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}>
+      {IconComponent && <IconComponent size={16} />}
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+};
 
 export default function App() {
   const [tab, setTab] = useState('overview');
@@ -136,8 +272,21 @@ export default function App() {
   const [showGuideForm, setShowGuideForm] = useState(false);
   const [newGuide, setNewGuide] = useState({
     title: '', champion: '', role: '', category: 'COMPREHENSIVE', difficulty: 'INTERMEDIATE',
-    introduction: '', prosAndCons: { pros: ['', '', ''], cons: ['', '', ''] },
-    runes: { keystone: '', explanation: '' }, tips: ['', '', ''], author: { username: '', rank: '', server: '' }
+    introduction: '', 
+    prosAndCons: { pros: ['', '', ''], cons: ['', '', ''] },
+    runes: { keystone: '', primaryTree: '', secondaryTree: '', explanation: '' }, 
+    itemBuilds: {
+      starter: ['', ''],
+      core: ['', '', ''],
+      situational: ['', '', ''],
+      boots: ''
+    },
+    summonerSpells: { primary: 'Flash', secondary: '' },
+    abilities: { skillOrder: 'Q > E > W', maxFirst: 'Q', maxSecond: 'E' },
+    matchups: [{ champion: '', difficulty: 'Skill', tip: '' }],
+    combos: [{ name: '', inputs: '', difficulty: 'Easy' }],
+    tips: ['', '', ''], 
+    author: { username: '', rank: '', server: '' }
   });
 
   const filteredChamps = useMemo(() =>
@@ -229,16 +378,16 @@ export default function App() {
             </div>
             <input type="text" placeholder="Search champions..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 max-w-xs bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2 text-sm" />
             <div className="flex gap-1 bg-slate-800/50 rounded-xl p-1 border border-slate-700/50 overflow-x-auto">
-              <Tab active={tab === 'overview'} onClick={() => setTab('overview')} icon="📊" label="Overview" />
-              <Tab active={tab === 'guides'} onClick={() => setTab('guides')} icon="📚" label="Guides" />
-              <Tab active={tab === 'matchups'} onClick={() => setTab('matchups')} icon="⚔️" label="Matchups" />
-              <Tab active={tab === 'runes'} onClick={() => setTab('runes')} icon="🔮" label="Runes" />
-              <Tab active={tab === 'builder'} onClick={() => setTab('builder')} icon="🔧" label="Builder" />
-              <Tab active={tab === 'tracker'} onClick={() => setTab('tracker')} icon="👁️" label="Tracker" />
-              <Tab active={tab === 'practice'} onClick={() => setTab('practice')} icon="🎯" label="Practice" />
-              <Tab active={tab === 'improve'} onClick={() => setTab('improve')} icon="📈" label="Improve" />
-              <Tab active={tab === 'coaching'} onClick={() => setTab('coaching')} icon="🏆" label="Coaching" />
-              <Tab active={tab === 'community'} onClick={() => setTab('community')} icon="👥" label="Community" />
+              <Tab active={tab === 'overview'} onClick={() => setTab('overview')} tabKey="overview" label="Overview" />
+              <Tab active={tab === 'guides'} onClick={() => setTab('guides')} tabKey="guides" label="Guides" />
+              <Tab active={tab === 'matchups'} onClick={() => setTab('matchups')} tabKey="matchups" label="Matchups" />
+              <Tab active={tab === 'runes'} onClick={() => setTab('runes')} tabKey="runes" label="Runes" />
+              <Tab active={tab === 'builder'} onClick={() => setTab('builder')} tabKey="builder" label="Builder" />
+              <Tab active={tab === 'tracker'} onClick={() => setTab('tracker')} tabKey="tracker" label="Tracker" />
+              <Tab active={tab === 'practice'} onClick={() => setTab('practice')} tabKey="practice" label="Practice" />
+              <Tab active={tab === 'improve'} onClick={() => setTab('improve')} tabKey="improve" label="Improve" />
+              <Tab active={tab === 'coaching'} onClick={() => setTab('coaching')} tabKey="coaching" label="Coaching" />
+              <Tab active={tab === 'community'} onClick={() => setTab('community')} tabKey="community" label="Community" />
             </div>
           </div>
         </div>
@@ -657,7 +806,7 @@ export default function App() {
               const keystoneData = runeMath[page.keystone?.replace(/\s+/g, '')] || runeMath[page.keystone] || {};
               
               return (
-                <Card title={`Recommended Runes: ${selected.name}${runeEnemy ? ` vs ${runeEnemy.name}` : ''}`} icon="🔮">
+                <Card title={`Recommended Runes: ${selected.name}${runeEnemy ? ` vs ${runeEnemy.name}` : ''}`} icon={<Sparkles size={20} />}>
                   {page.matchupSpecific && (
                     <div className="mb-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg text-green-400 text-sm">
                       ✓ Matchup-specific page: <b>{page.matchupType}</b> runes optimized for this matchup
@@ -667,12 +816,14 @@ export default function App() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Primary Tree */}
                     <div className="space-y-4">
-                      <h4 className="font-bold text-lg text-yellow-400">⬢ Primary: {page.primaryTree}</h4>
+                      <h4 className="font-bold text-lg text-yellow-400 flex items-center gap-2">
+                        <RuneTreeIcon tree={page.primaryTree} size={24} /> Primary: {page.primaryTree}
+                      </h4>
                       
                       {/* Keystone */}
                       <div className="p-4 bg-gradient-to-br from-yellow-500/20 to-orange-500/10 rounded-xl border border-yellow-500/30">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className="w-12 h-12 bg-yellow-500/30 rounded-full flex items-center justify-center text-2xl">⬡</div>
+                          <KeystoneIcon keystone={page.keystone} size={48} className="border-2 border-yellow-500/50" />
                           <div>
                             <div className="font-bold text-xl text-yellow-400">{page.keystone}</div>
                             <div className="text-xs text-yellow-400/70">Keystone</div>
@@ -701,7 +852,9 @@ export default function App() {
                       <div className="space-y-2">
                         {page.primaryRunes?.map((rune, i) => (
                           <div key={i} className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg">
-                            <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center text-sm">◇</div>
+                            <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                              <Sparkles size={16} className="text-yellow-400" />
+                            </div>
                             <div>
                               <div className="font-medium">{rune}</div>
                               {minorRuneMath[rune?.replace(/[:\s]/g, '')] && (
@@ -715,13 +868,17 @@ export default function App() {
                     
                     {/* Secondary Tree + Shards */}
                     <div className="space-y-4">
-                      <h4 className="font-bold text-lg text-blue-400">⬢ Secondary: {page.secondaryTree}</h4>
+                      <h4 className="font-bold text-lg text-blue-400 flex items-center gap-2">
+                        <RuneTreeIcon tree={page.secondaryTree} size={24} /> Secondary: {page.secondaryTree}
+                      </h4>
                       
                       {/* Secondary Runes */}
                       <div className="space-y-2">
                         {page.secondaryRunes?.map((rune, i) => (
                           <div key={i} className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg">
-                            <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-sm">◇</div>
+                            <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                              <Sparkles size={16} className="text-blue-400" />
+                            </div>
                             <div>
                               <div className="font-medium">{rune}</div>
                               {minorRuneMath[rune?.replace(/[:\s]/g, '')] && (
@@ -905,15 +1062,15 @@ export default function App() {
         {/* TRACKER TAB */}
         {tab === 'tracker' && (
           <div className="space-y-4">
-            <Card title="Enemy Summoner Spell Tracker" icon="👁️">
+            <Card title="Enemy Summoner Spell Tracker" icon={<Eye size={20} />}>
               <p className="text-sm text-slate-400 mb-4">Track enemy Flash, TP, and Ults. Click to start timer.</p>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="text-left text-xs text-slate-400">
                       <th className="pb-2">Champion</th>
-                      <th className="pb-2">Flash (300s)</th>
-                      <th className="pb-2">TP (360s)</th>
+                      <th className="pb-2"><div className="flex items-center gap-1"><SpellIcon spell="Flash" size={16} /> Flash (300s)</div></th>
+                      <th className="pb-2"><div className="flex items-center gap-1"><SpellIcon spell="Teleport" size={16} /> TP (360s)</div></th>
                       <th className="pb-2">Ult CD</th>
                     </tr>
                   </thead>
@@ -930,12 +1087,14 @@ export default function App() {
                           </div>
                         </td>
                         <td className="py-2">
-                          <button onClick={() => updateTracker(i, 'flash', 300)} className={`px-3 py-1 rounded text-sm ${enemyTracker[i].flash > 0 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
+                          <button onClick={() => updateTracker(i, 'flash', 300)} className={`px-3 py-1 rounded text-sm flex items-center gap-1 ${enemyTracker[i].flash > 0 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
+                            <SpellIcon spell="Flash" size={18} />
                             {enemyTracker[i].flash > 0 ? `${enemyTracker[i].flash}s` : 'UP'}
                           </button>
                         </td>
                         <td className="py-2">
-                          <button onClick={() => updateTracker(i, 'tp', 360)} className={`px-3 py-1 rounded text-sm ${enemyTracker[i].tp > 0 ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
+                          <button onClick={() => updateTracker(i, 'tp', 360)} className={`px-3 py-1 rounded text-sm flex items-center gap-1 ${enemyTracker[i].tp > 0 ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
+                            <SpellIcon spell="Teleport" size={18} />
                             {enemyTracker[i].tp > 0 ? `${enemyTracker[i].tp}s` : 'UP'}
                           </button>
                         </td>
@@ -949,7 +1108,7 @@ export default function App() {
               </div>
             </Card>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card title="Jungle Timers" icon="🐉">
+              <Card title="Jungle Timers" icon={<Clock size={20} />}>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-slate-400">Drake</span><span>5:00 → Every 5:00</span></div>
                   <div className="flex justify-between"><span className="text-slate-400">Rift Herald</span><span>8:00</span></div>
@@ -958,16 +1117,16 @@ export default function App() {
                   <div className="flex justify-between"><span className="text-slate-400">Void Grubs</span><span>5:00 → 9:45</span></div>
                 </div>
               </Card>
-              <Card title="Summoner CDs" icon="⏱️">
+              <Card title="Summoner CDs" icon={<Zap size={20} />}>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-yellow-400">Flash</span><span>300s (5 min)</span></div>
-                  <div className="flex justify-between"><span className="text-blue-400">Teleport</span><span>360s (6 min)</span></div>
-                  <div className="flex justify-between"><span className="text-red-400">Ignite</span><span>180s (3 min)</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Exhaust</span><span>210s (3.5 min)</span></div>
-                  <div className="flex justify-between"><span className="text-green-400">Heal</span><span>240s (4 min)</span></div>
+                  <div className="flex justify-between items-center"><div className="flex items-center gap-2"><SpellIcon spell="Flash" size={20} /><span className="text-yellow-400">Flash</span></div><span>300s (5 min)</span></div>
+                  <div className="flex justify-between items-center"><div className="flex items-center gap-2"><SpellIcon spell="Teleport" size={20} /><span className="text-blue-400">Teleport</span></div><span>360s (6 min)</span></div>
+                  <div className="flex justify-between items-center"><div className="flex items-center gap-2"><SpellIcon spell="Ignite" size={20} /><span className="text-red-400">Ignite</span></div><span>180s (3 min)</span></div>
+                  <div className="flex justify-between items-center"><div className="flex items-center gap-2"><SpellIcon spell="Exhaust" size={20} /><span className="text-gray-400">Exhaust</span></div><span>210s (3.5 min)</span></div>
+                  <div className="flex justify-between items-center"><div className="flex items-center gap-2"><SpellIcon spell="Heal" size={20} /><span className="text-green-400">Heal</span></div><span>240s (4 min)</span></div>
                 </div>
               </Card>
-              <Card title="CS Goals" icon="🎯">
+              <Card title="CS Goals" icon={<Target size={20} />}>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-slate-400">5 min</span><span>44 CS (8.8/min)</span></div>
                   <div className="flex justify-between"><span className="text-slate-400">10 min</span><span>80-100 CS</span></div>
@@ -2352,93 +2511,280 @@ export default function App() {
             {/* SUBMIT GUIDE */}
             {communityTab === 'submit' && (
               <div className="space-y-4">
-                <Card title="Submit Your Guide" icon="✏️">
-                  <p className="text-slate-400 mb-4">Share your knowledge with the community! Fill out the form below to submit your guide for review.</p>
+                <Card title="Submit Your Guide" icon={<BookOpen size={20} />}>
+                  <p className="text-slate-400 mb-6">Share your knowledge with the community! Fill out the form below to create a comprehensive guide.</p>
                   
-                  <div className="space-y-4">
-                    {/* Basic Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Guide Title *</label>
-                        <input type="text" value={newGuide.title} onChange={(e) => setNewGuide({...newGuide, title: e.target.value})} placeholder="e.g., Challenger Aatrox Guide - Season 14" className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                  <div className="space-y-6">
+                    {/* SECTION 1: Basic Info */}
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Info size={18} className="text-blue-400" /> Basic Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Guide Title *</label>
+                          <input type="text" value={newGuide.title} onChange={(e) => setNewGuide({...newGuide, title: e.target.value})} placeholder="e.g., Challenger Aatrox Guide - Season 2026" className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Your Username *</label>
+                          <input type="text" value={newGuide.author.username} onChange={(e) => setNewGuide({...newGuide, author: {...newGuide.author, username: e.target.value}})} placeholder="Your display name" className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Your Username *</label>
-                        <input type="text" value={newGuide.author.username} onChange={(e) => setNewGuide({...newGuide, author: {...newGuide.author, username: e.target.value}})} placeholder="Your display name" className="w-full bg-slate-700 rounded-lg px-3 py-2" />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Champion *</label>
-                        <select value={newGuide.champion} onChange={(e) => setNewGuide({...newGuide, champion: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
-                          <option value="">Select Champion</option>
-                          {Object.values(CHAMPIONS).sort((a,b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Role *</label>
-                        <select value={newGuide.role} onChange={(e) => setNewGuide({...newGuide, role: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
-                          <option value="">Select Role</option>
-                          {['Top', 'Jungle', 'Mid', 'ADC', 'Support'].map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Your Rank</label>
-                        <select value={newGuide.author.rank} onChange={(e) => setNewGuide({...newGuide, author: {...newGuide.author, rank: e.target.value}})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
-                          {['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Challenger'].map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Difficulty</label>
-                        <select value={newGuide.difficulty} onChange={(e) => setNewGuide({...newGuide, difficulty: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
-                          {Object.entries(DIFFICULTY_LEVELS).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.name}</option>)}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Introduction */}
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Introduction *</label>
-                      <textarea value={newGuide.introduction} onChange={(e) => setNewGuide({...newGuide, introduction: e.target.value})} placeholder="Introduce yourself and your guide..." rows={4} className="w-full bg-slate-700 rounded-lg px-3 py-2" />
-                    </div>
-
-                    {/* Pros & Cons */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-green-400">Strengths (Pros)</label>
-                        {newGuide.prosAndCons.pros.map((pro, i) => (
-                          <input key={i} type="text" value={pro} onChange={(e) => { const newPros = [...newGuide.prosAndCons.pros]; newPros[i] = e.target.value; setNewGuide({...newGuide, prosAndCons: {...newGuide.prosAndCons, pros: newPros}}); }} placeholder={`Pro ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
-                        ))}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-red-400">Weaknesses (Cons)</label>
-                        {newGuide.prosAndCons.cons.map((con, i) => (
-                          <input key={i} type="text" value={con} onChange={(e) => { const newCons = [...newGuide.prosAndCons.cons]; newCons[i] = e.target.value; setNewGuide({...newGuide, prosAndCons: {...newGuide.prosAndCons, cons: newCons}}); }} placeholder={`Con ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
-                        ))}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Champion *</label>
+                          <select value={newGuide.champion} onChange={(e) => setNewGuide({...newGuide, champion: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                            <option value="">Select</option>
+                            {Object.values(CHAMPIONS).sort((a,b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Role *</label>
+                          <select value={newGuide.role} onChange={(e) => setNewGuide({...newGuide, role: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                            <option value="">Select</option>
+                            {['Top', 'Jungle', 'Mid', 'ADC', 'Support'].map(r => <option key={r} value={r}>{r}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Your Rank</label>
+                          <select value={newGuide.author.rank} onChange={(e) => setNewGuide({...newGuide, author: {...newGuide.author, rank: e.target.value}})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                            <option value="">Select</option>
+                            {['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Challenger'].map(r => <option key={r} value={r}>{r}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Server</label>
+                          <select value={newGuide.author.server} onChange={(e) => setNewGuide({...newGuide, author: {...newGuide.author, server: e.target.value}})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                            <option value="">Select</option>
+                            {['NA', 'EUW', 'EUNE', 'KR', 'CN', 'BR', 'LAN', 'LAS', 'OCE', 'TR', 'RU', 'JP', 'SEA', 'PH', 'SG', 'TW', 'VN', 'TH'].map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Difficulty</label>
+                          <select value={newGuide.difficulty} onChange={(e) => setNewGuide({...newGuide, difficulty: e.target.value})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                            {Object.entries(DIFFICULTY_LEVELS).map(([k, v]) => <option key={k} value={k}>{v.name}</option>)}
+                          </select>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Runes */}
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Recommended Keystone</label>
-                      <select value={newGuide.runes.keystone} onChange={(e) => setNewGuide({...newGuide, runes: {...newGuide.runes, keystone: e.target.value}})} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2">
-                        <option value="">Select Keystone</option>
-                        {['Conqueror', 'Lethal Tempo', 'Fleet Footwork', 'Press the Attack', 'Electrocute', 'Dark Harvest', 'Hail of Blades', 'Summon Aery', 'Arcane Comet', 'Phase Rush', 'Grasp of the Undying', 'Aftershock', 'Guardian', 'Glacial Augment', 'First Strike'].map(k => <option key={k} value={k}>{k}</option>)}
-                      </select>
-                      <textarea value={newGuide.runes.explanation} onChange={(e) => setNewGuide({...newGuide, runes: {...newGuide.runes, explanation: e.target.value}})} placeholder="Explain why this rune setup..." rows={2} className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                    {/* SECTION 2: Introduction & Overview */}
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><BookOpen size={18} className="text-purple-400" /> Introduction</h3>
+                      <textarea value={newGuide.introduction} onChange={(e) => setNewGuide({...newGuide, introduction: e.target.value})} placeholder="Introduce yourself, your experience with the champion, and what readers will learn from this guide..." rows={4} className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                      
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-green-400">Strengths (Pros)</label>
+                          {newGuide.prosAndCons.pros.map((pro, i) => (
+                            <input key={i} type="text" value={pro} onChange={(e) => { const newPros = [...newGuide.prosAndCons.pros]; newPros[i] = e.target.value; setNewGuide({...newGuide, prosAndCons: {...newGuide.prosAndCons, pros: newPros}}); }} placeholder={`Strength ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
+                          ))}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-red-400">Weaknesses (Cons)</label>
+                          {newGuide.prosAndCons.cons.map((con, i) => (
+                            <input key={i} type="text" value={con} onChange={(e) => { const newCons = [...newGuide.prosAndCons.cons]; newCons[i] = e.target.value; setNewGuide({...newGuide, prosAndCons: {...newGuide.prosAndCons, cons: newCons}}); }} placeholder={`Weakness ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Tips */}
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Key Tips</label>
-                      {newGuide.tips.map((tip, i) => (
-                        <input key={i} type="text" value={tip} onChange={(e) => { const newTips = [...newGuide.tips]; newTips[i] = e.target.value; setNewGuide({...newGuide, tips: newTips}); }} placeholder={`Tip ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
+                    {/* SECTION 3: Summoner Spells */}
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Zap size={18} className="text-yellow-400" /> Summoner Spells</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Primary Spell</label>
+                          <div className="flex items-center gap-2">
+                            <SpellIcon spell={newGuide.summonerSpells.primary} size={32} />
+                            <select value={newGuide.summonerSpells.primary} onChange={(e) => setNewGuide({...newGuide, summonerSpells: {...newGuide.summonerSpells, primary: e.target.value}})} className="flex-1 bg-slate-700 rounded-lg px-3 py-2">
+                              {Object.keys(SUMMONER_SPELLS).map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Secondary Spell</label>
+                          <div className="flex items-center gap-2">
+                            <SpellIcon spell={newGuide.summonerSpells.secondary} size={32} />
+                            <select value={newGuide.summonerSpells.secondary} onChange={(e) => setNewGuide({...newGuide, summonerSpells: {...newGuide.summonerSpells, secondary: e.target.value}})} className="flex-1 bg-slate-700 rounded-lg px-3 py-2">
+                              <option value="">Select</option>
+                              {Object.keys(SUMMONER_SPELLS).filter(s => s !== newGuide.summonerSpells.primary).map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 4: Runes */}
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Sparkles size={18} className="text-purple-400" /> Runes</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Keystone *</label>
+                          <div className="flex items-center gap-2">
+                            <KeystoneIcon keystone={newGuide.runes.keystone} size={36} />
+                            <select value={newGuide.runes.keystone} onChange={(e) => setNewGuide({...newGuide, runes: {...newGuide.runes, keystone: e.target.value}})} className="flex-1 bg-slate-700 rounded-lg px-3 py-2">
+                              <option value="">Select Keystone</option>
+                              {Object.keys(KEYSTONE_ICONS).map(k => <option key={k} value={k}>{k}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Primary Tree</label>
+                          <div className="flex items-center gap-2">
+                            <RuneTreeIcon tree={newGuide.runes.primaryTree} size={28} />
+                            <select value={newGuide.runes.primaryTree} onChange={(e) => setNewGuide({...newGuide, runes: {...newGuide.runes, primaryTree: e.target.value}})} className="flex-1 bg-slate-700 rounded-lg px-3 py-2">
+                              <option value="">Select</option>
+                              {['Precision', 'Domination', 'Sorcery', 'Resolve', 'Inspiration'].map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Secondary Tree</label>
+                          <div className="flex items-center gap-2">
+                            <RuneTreeIcon tree={newGuide.runes.secondaryTree} size={28} />
+                            <select value={newGuide.runes.secondaryTree} onChange={(e) => setNewGuide({...newGuide, runes: {...newGuide.runes, secondaryTree: e.target.value}})} className="flex-1 bg-slate-700 rounded-lg px-3 py-2">
+                              <option value="">Select</option>
+                              {['Precision', 'Domination', 'Sorcery', 'Resolve', 'Inspiration'].filter(t => t !== newGuide.runes.primaryTree).map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <textarea value={newGuide.runes.explanation} onChange={(e) => setNewGuide({...newGuide, runes: {...newGuide.runes, explanation: e.target.value}})} placeholder="Explain why this rune setup works best for this champion..." rows={2} className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                    </div>
+
+                    {/* SECTION 5: Item Builds */}
+                    <div className="p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Wrench size={18} className="text-blue-400" /> Item Builds</h3>
+                      
+                      <div className="space-y-4">
+                        {/* Starter Items */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-green-400">Starter Items</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {newGuide.itemBuilds.starter.map((item, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <ItemIconByName name={item} size={28} />
+                                <select value={item} onChange={(e) => { const newStarter = [...newGuide.itemBuilds.starter]; newStarter[i] = e.target.value; setNewGuide({...newGuide, itemBuilds: {...newGuide.itemBuilds, starter: newStarter}}); }} className="flex-1 bg-slate-700 rounded-lg px-3 py-2 text-sm">
+                                  <option value="">Select Item</option>
+                                  {["Doran's Blade", "Doran's Ring", "Doran's Shield", "Long Sword", "Corrupting Potion", "Cull", "Dark Seal", "Tear of the Goddess", "Cloth Armor", "Boots", "Refillable Potion", "Health Potion"].map(item => <option key={item} value={item}>{item}</option>)}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Core Build */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-blue-400">Core Build (First 3 Items)</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {newGuide.itemBuilds.core.map((item, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <ItemIconByName name={item} size={32} />
+                                <input type="text" value={item} onChange={(e) => { const newCore = [...newGuide.itemBuilds.core]; newCore[i] = e.target.value; setNewGuide({...newGuide, itemBuilds: {...newGuide.itemBuilds, core: newCore}}); }} placeholder={`Core Item ${i + 1}`} className="flex-1 bg-slate-700 rounded-lg px-3 py-2 text-sm" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Situational Items */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-yellow-400">Situational Items</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {newGuide.itemBuilds.situational.map((item, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <ItemIconByName name={item} size={28} />
+                                <input type="text" value={item} onChange={(e) => { const newSit = [...newGuide.itemBuilds.situational]; newSit[i] = e.target.value; setNewGuide({...newGuide, itemBuilds: {...newGuide.itemBuilds, situational: newSit}}); }} placeholder={`Situational ${i + 1}`} className="flex-1 bg-slate-700 rounded-lg px-3 py-2 text-sm" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Boots */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-green-400">Recommended Boots</label>
+                          <div className="flex items-center gap-2">
+                            <ItemIconByName name={newGuide.itemBuilds.boots} size={32} />
+                            <select value={newGuide.itemBuilds.boots} onChange={(e) => setNewGuide({...newGuide, itemBuilds: {...newGuide.itemBuilds, boots: e.target.value}})} className="flex-1 bg-slate-700 rounded-lg px-3 py-2">
+                              <option value="">Select Boots</option>
+                              {["Plated Steelcaps", "Mercury's Treads", "Ionian Boots of Lucidity", "Berserker's Greaves", "Sorcerer's Shoes", "Boots of Swiftness", "Mobility Boots"].map(b => <option key={b} value={b}>{b}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 6: Ability Order */}
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Zap size={18} className="text-orange-400" /> Ability Skill Order</h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Skill Order</label>
+                          <input type="text" value={newGuide.abilities.skillOrder} onChange={(e) => setNewGuide({...newGuide, abilities: {...newGuide.abilities, skillOrder: e.target.value}})} placeholder="e.g., Q > E > W" className="w-full bg-slate-700 rounded-lg px-3 py-2" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Max First</label>
+                          <select value={newGuide.abilities.maxFirst} onChange={(e) => setNewGuide({...newGuide, abilities: {...newGuide.abilities, maxFirst: e.target.value}})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                            {['Q', 'W', 'E'].map(a => <option key={a} value={a}>{a}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Max Second</label>
+                          <select value={newGuide.abilities.maxSecond} onChange={(e) => setNewGuide({...newGuide, abilities: {...newGuide.abilities, maxSecond: e.target.value}})} className="w-full bg-slate-700 rounded-lg px-3 py-2">
+                            {['Q', 'W', 'E'].filter(a => a !== newGuide.abilities.maxFirst).map(a => <option key={a} value={a}>{a}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 7: Matchups */}
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Swords size={18} className="text-red-400" /> Key Matchups</h3>
+                      {newGuide.matchups.map((matchup, i) => (
+                        <div key={i} className="grid grid-cols-4 gap-2 mb-2">
+                          <select value={matchup.champion} onChange={(e) => { const newMatchups = [...newGuide.matchups]; newMatchups[i].champion = e.target.value; setNewGuide({...newGuide, matchups: newMatchups}); }} className="bg-slate-700 rounded-lg px-3 py-2 text-sm">
+                            <option value="">Enemy Champion</option>
+                            {Object.values(CHAMPIONS).sort((a,b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                          </select>
+                          <select value={matchup.difficulty} onChange={(e) => { const newMatchups = [...newGuide.matchups]; newMatchups[i].difficulty = e.target.value; setNewGuide({...newGuide, matchups: newMatchups}); }} className="bg-slate-700 rounded-lg px-3 py-2 text-sm">
+                            {['Easy', 'Favorable', 'Skill', 'Unfavorable', 'Hard'].map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                          <input type="text" value={matchup.tip} onChange={(e) => { const newMatchups = [...newGuide.matchups]; newMatchups[i].tip = e.target.value; setNewGuide({...newGuide, matchups: newMatchups}); }} placeholder="How to play this matchup" className="col-span-2 bg-slate-700 rounded-lg px-3 py-2 text-sm" />
+                        </div>
                       ))}
+                      <button onClick={() => setNewGuide({...newGuide, matchups: [...newGuide.matchups, { champion: '', difficulty: 'Skill', tip: '' }]})} className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-2">
+                        <Plus size={14} /> Add Matchup
+                      </button>
                     </div>
 
-                    {/* Submit */}
-                    <div className="flex gap-3">
+                    {/* SECTION 8: Combos */}
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Target size={18} className="text-orange-400" /> Combos</h3>
+                      {newGuide.combos.map((combo, i) => (
+                        <div key={i} className="grid grid-cols-4 gap-2 mb-2">
+                          <input type="text" value={combo.name} onChange={(e) => { const newCombos = [...newGuide.combos]; newCombos[i].name = e.target.value; setNewGuide({...newGuide, combos: newCombos}); }} placeholder="Combo Name" className="bg-slate-700 rounded-lg px-3 py-2 text-sm" />
+                          <input type="text" value={combo.inputs} onChange={(e) => { const newCombos = [...newGuide.combos]; newCombos[i].inputs = e.target.value; setNewGuide({...newGuide, combos: newCombos}); }} placeholder="e.g., Q > AA > E > W" className="col-span-2 bg-slate-700 rounded-lg px-3 py-2 text-sm" />
+                          <select value={combo.difficulty} onChange={(e) => { const newCombos = [...newGuide.combos]; newCombos[i].difficulty = e.target.value; setNewGuide({...newGuide, combos: newCombos}); }} className="bg-slate-700 rounded-lg px-3 py-2 text-sm">
+                            {['Easy', 'Medium', 'Hard'].map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                        </div>
+                      ))}
+                      <button onClick={() => setNewGuide({...newGuide, combos: [...newGuide.combos, { name: '', inputs: '', difficulty: 'Easy' }]})} className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-2">
+                        <Plus size={14} /> Add Combo
+                      </button>
+                    </div>
+
+                    {/* SECTION 9: Tips */}
+                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-600">
+                      <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><AlertCircle size={18} className="text-yellow-400" /> Key Tips & Tricks</h3>
+                      {newGuide.tips.map((tip, i) => (
+                        <input key={i} type="text" value={tip} onChange={(e) => { const newTips = [...newGuide.tips]; newTips[i] = e.target.value; setNewGuide({...newGuide, tips: newTips}); }} placeholder={`Pro Tip ${i + 1}`} className="w-full bg-slate-700 rounded-lg px-3 py-2 mb-2" />
+                      ))}
+                      <button onClick={() => setNewGuide({...newGuide, tips: [...newGuide.tips, '']})} className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                        <Plus size={14} /> Add Tip
+                      </button>
+                    </div>
+
+                    {/* Submit Buttons */}
+                    <div className="flex gap-3 pt-4">
                       <button onClick={() => {
                         const validation = validateGuide({...newGuide, sections: { introduction: newGuide.introduction }});
                         if (!validation.valid) {
@@ -2448,9 +2794,20 @@ export default function App() {
                         const guide = {
                           id: generateGuideId(),
                           ...newGuide,
-                          sections: { introduction: newGuide.introduction, prosAndCons: newGuide.prosAndCons },
+                          sections: { 
+                            introduction: newGuide.introduction, 
+                            prosAndCons: newGuide.prosAndCons,
+                            itemBuilds: {
+                              starter: { items: newGuide.itemBuilds.starter.filter(Boolean), explanation: '' },
+                              core: { items: newGuide.itemBuilds.core.filter(Boolean), explanation: '' },
+                              situational: newGuide.itemBuilds.situational.filter(Boolean).map(item => ({ item, when: '', priority: 'MEDIUM' })),
+                              boots: [{ item: newGuide.itemBuilds.boots, when: 'Default' }]
+                            },
+                            matchups: newGuide.matchups.filter(m => m.champion),
+                            combos: newGuide.combos.filter(c => c.name)
+                          },
                           author: { ...newGuide.author, id: 'user-new', avatar: '👤', verified: false, guidesCount: 1, totalUpvotes: 0 },
-                          tags: ['Season 14', 'Community'],
+                          tags: ['Season 2026', 'Community'],
                           patch: VERSION,
                           createdAt: new Date().toISOString().split('T')[0],
                           updatedAt: new Date().toISOString().split('T')[0],
@@ -2460,14 +2817,26 @@ export default function App() {
                           bookmarks: 0
                         };
                         setUserGuides([guide, ...userGuides]);
-                        setNewGuide({ title: '', champion: '', role: '', category: 'COMPREHENSIVE', difficulty: 'INTERMEDIATE', introduction: '', prosAndCons: { pros: ['', '', ''], cons: ['', '', ''] }, runes: { keystone: '', explanation: '' }, tips: ['', '', ''], author: { username: '', rank: '', server: '' } });
+                        setNewGuide({
+                          title: '', champion: '', role: '', category: 'COMPREHENSIVE', difficulty: 'INTERMEDIATE',
+                          introduction: '', 
+                          prosAndCons: { pros: ['', '', ''], cons: ['', '', ''] },
+                          runes: { keystone: '', primaryTree: '', secondaryTree: '', explanation: '' }, 
+                          itemBuilds: { starter: ['', ''], core: ['', '', ''], situational: ['', '', ''], boots: '' },
+                          summonerSpells: { primary: 'Flash', secondary: '' },
+                          abilities: { skillOrder: 'Q > E > W', maxFirst: 'Q', maxSecond: 'E' },
+                          matchups: [{ champion: '', difficulty: 'Skill', tip: '' }],
+                          combos: [{ name: '', inputs: '', difficulty: 'Easy' }],
+                          tips: ['', '', ''], 
+                          author: { username: '', rank: '', server: '' }
+                        });
                         setCommunityTab('browse');
                         alert('Guide submitted successfully!');
-                      }} className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold">
-                        📤 Submit Guide
+                      }} className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 rounded-xl font-bold flex items-center gap-2">
+                        <Check size={18} /> Submit Guide
                       </button>
-                      <button onClick={() => setCommunityTab('browse')} className="px-6 py-3 bg-slate-600 hover:bg-slate-500 rounded-xl">
-                        Cancel
+                      <button onClick={() => setCommunityTab('browse')} className="px-6 py-3 bg-slate-600 hover:bg-slate-500 rounded-xl flex items-center gap-2">
+                        <X size={18} /> Cancel
                       </button>
                     </div>
                   </div>

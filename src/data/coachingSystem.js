@@ -762,6 +762,69 @@ export const rankCoaching = {
       { week: 3, goal: "Fix mistake #2" },
       { week: 4, goal: "Fix mistake #3" }
     ]
+  },
+  
+  Masters: {
+    biggestIssues: [
+      "Plateauing at skill ceiling",
+      "Inability to adapt playstyle",
+      "Overconfidence in mechanics",
+      "Neglecting team coordination"
+    ],
+    quickWins: [
+      "Study multiple high-elo players for variety",
+      "Focus on team-enabling plays",
+      "Track meta shifts daily",
+      "Work on communication/pings"
+    ],
+    weeklyGoals: [
+      { week: 1, goal: "Analyze 5 Grandmaster games daily" },
+      { week: 2, goal: "Master 2 meta picks outside comfort zone" },
+      { week: 3, goal: "Perfect jungle tracking and timers" },
+      { week: 4, goal: "Lead team through shotcalling" }
+    ]
+  },
+  
+  Grandmaster: {
+    biggestIssues: [
+      "Marginal gains are extremely hard",
+      "Queue times affect practice efficiency",
+      "Burnout from grind",
+      "Facing same players repeatedly"
+    ],
+    quickWins: [
+      "Maintain strict sleep/practice schedule",
+      "Review games with other GM+ players",
+      "Focus on mental edge over opponents",
+      "Study opponents' tendencies"
+    ],
+    weeklyGoals: [
+      { week: 1, goal: "Create opponent tracking notes" },
+      { week: 2, goal: "Perfect early game execution" },
+      { week: 3, goal: "Optimize champion pool for meta" },
+      { week: 4, goal: "Maintain 60%+ winrate on main" }
+    ]
+  },
+  
+  Challenger: {
+    biggestIssues: [
+      "Maintaining top 300 position",
+      "Adapting to pro-level counter strategies",
+      "Balancing streaming/content with climb",
+      "Mental warfare at highest level"
+    ],
+    quickWins: [
+      "Network with pro players",
+      "Consider coaching as supplemental income",
+      "Build personal brand for opportunities",
+      "Keep mental health as priority"
+    ],
+    weeklyGoals: [
+      { week: 1, goal: "Maintain LP and avoid decay" },
+      { week: 2, goal: "Study pro scrims/tournament VODs" },
+      { week: 3, goal: "Practice new picks in flex/tourney" },
+      { week: 4, goal: "Reach out to pro teams/scouts" }
+    ]
   }
 };
 
