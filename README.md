@@ -1,7 +1,9 @@
 <div align="center">
 
 <!-- Animated Title -->
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=45&duration=3000&pause=1000&color=F75C03&center=true&vCenter=true&multiline=true&repeat=false&width=800&height=100&lines=LoL-Matrix+%E2%9A%A1;Dominate+The+Rift" alt="Typing SVG" />
+<img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=900&size=70&duration=2000&pause=500&color=C9AA71&center=true&vCenter=true&width=1000&height=120&lines=LOL+MATRIX" alt="LoL Matrix Title" />
+
+<img src="https://readme-typing-svg.demolab.com?font=Rajdhani&weight=600&size=35&duration=3000&pause=1000&color=0AC8B9&center=true&vCenter=true&width=1000&height=60&lines=DOMINATE+THE+RIFT;OUTPLAY+EVERY+MATCHUP;CALCULATED+DESTRUCTION" alt="Subtitle" />
 
 <p align="center">
   <img src="https://img.shields.io/badge/Patch-16.2.1-7289DA?style=for-the-badge&logo=riot-games&logoColor=white" alt="Patch"/>
@@ -48,7 +50,7 @@
 
 </div>
 
-**LoL Matrix** is a cutting-edge web application that gives you the competitive edge in League of Legends. Built with real-time data from Riot's Data Dragon API, it provides comprehensive champion analytics, intelligent counter-building recommendations, and precise damage calculations.
+**LoL-Matrix** is a cutting-edge web application that gives you the competitive edge in League of Legends. Built with real-time data from Riot's Data Dragon API, it provides comprehensive champion analytics, intelligent counter-building recommendations, and precise damage calculations.
 
 <table>
 <tr>
