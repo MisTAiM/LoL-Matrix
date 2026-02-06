@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, LineChart, Line, Legend, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { LayoutDashboard, BookOpen, Swords, Sparkles, Wrench, Eye, Target, TrendingUp, Trophy, Users, ChevronLeft, ChevronRight, Search, Star, Clock, Bookmark, MessageSquare, ThumbsUp, ThumbsDown, Plus, X, Check, AlertCircle, Info, Zap, Shield, Heart, Flame, Home, ExternalLink, MessageCircle, Award, Play, ArrowRight, Github, Gamepad2 } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Swords, Sparkles, Wrench, Eye, Target, TrendingUp, Trophy, Users, ChevronLeft, ChevronRight, Search, Star, Clock, Bookmark, MessageSquare, ThumbsUp, ThumbsDown, Plus, X, Check, AlertCircle, Info, Zap, Shield, Heart, Flame, Home, ExternalLink, MessageCircle, Award, Play, ArrowRight, Github, Gamepad2, User, Activity, FileWarning, Crosshair, Timer } from 'lucide-react';
 import championsData from './data/champions_full.json';
 import itemsData from './data/items_full.json';
 import guidesData from './data/guides.json';
@@ -15,6 +15,7 @@ import { communityGuides, GUIDE_CATEGORIES, DIFFICULTY_LEVELS, filterGuides, sor
 import { TEAM_COMP_TYPES, COMP_CHAMPIONS, COMP_ITEM_BUILDS, SITUATIONAL_BUILDS, analyzeEnemyTeam, getCompInfo, getChampionsForComp, getBuildForComp } from './data/teamCompositions';
 import { ITEMS as ITEMS_DB, getItem, getItemIcon, getItemIconByName, calculateBuildCost, ITEM_TAGS, CURRENT_PATCH, DDRAGON_VERSION } from './data/itemsDatabase';
 import { getChampionStats, getSingleChampionStats, TIER_COLORS, formatWinRate, formatPickRate, formatBanRate, getWinRateColor, getTierList } from './utils/championStats';
+import { analyzeMatch, analyzeMatchHistory, analyzeCS, analyzeBuild, analyzeVision, BENCHMARKS, CHAMPION_SCALING, generateImprovementPlan } from './utils/playerAnalysis';
 
 const VERSION = championsData.meta.version;
 const ICON_BASE = championsData.meta.iconBase;
@@ -35,6 +36,7 @@ const CHART_COLORS = ['#3B82F6', '#22C55E', '#F97316', '#A855F7', '#EC4899', '#0
 // Navigation tab icons mapping (Lucide React)
 const NAV_ICONS = {
   home: Home,
+  analyze: Search,
   overview: LayoutDashboard,
   guides: BookOpen,
   matchups: Swords,
@@ -274,6 +276,15 @@ export default function App() {
   const [runeEnemy, setRuneEnemy] = useState(null);
   const [coachingTab, setCoachingTab] = useState('assessment');
   
+  // Player Analysis State
+  const [analyzeSearch, setAnalyzeSearch] = useState({ gameName: '', tagLine: '', region: 'NA1' });
+  const [analyzeLoading, setAnalyzeLoading] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState(null);
+  const [playerData, setPlayerData] = useState(null);
+  const [matchHistory, setMatchHistory] = useState([]);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [analysisResults, setAnalysisResults] = useState(null);
+  
   // Community Guides State
   const [communityTab, setCommunityTab] = useState('browse');
   const [guideFilter, setGuideFilter] = useState({ champion: '', role: '', category: '', search: '' });
@@ -429,6 +440,7 @@ export default function App() {
             <input type="text" placeholder="Search champions..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 max-w-xs bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2 text-sm" />
             <div className="flex gap-1 bg-slate-800/50 rounded-xl p-1 border border-slate-700/50 overflow-x-auto">
               <Tab active={tab === 'home'} onClick={() => setTab('home')} tabKey="home" label="Home" />
+              <Tab active={tab === 'analyze'} onClick={() => setTab('analyze')} tabKey="analyze" label="Analyze" />
               <Tab active={tab === 'overview'} onClick={() => setTab('overview')} tabKey="overview" label="Champions" />
               <Tab active={tab === 'guides'} onClick={() => setTab('guides')} tabKey="guides" label="Guides" />
               <Tab active={tab === 'matchups'} onClick={() => setTab('matchups')} tabKey="matchups" label="Matchups" />
@@ -512,13 +524,27 @@ export default function App() {
                     <p className="text-purple-400 text-sm">Ex-Coach @ Raven Gaming</p>
                   </div>
                 </div>
+                
+                {/* Champion Mains */}
+                <div className="flex items-center gap-3 mb-4 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                  <ChampIcon id="Poppy" size={40} className="border-2 border-yellow-500" />
+                  <ChampIcon id="Zeri" size={40} className="border-2 border-blue-500" />
+                  <div className="text-sm">
+                    <div className="text-slate-400">Signature Champions</div>
+                    <div className="font-bold text-white">Poppy & Zeri</div>
+                  </div>
+                </div>
+
                 <p className="text-slate-300 mb-4 leading-relaxed">
-                  After years of competing at the highest level and coaching professional teams, I've stepped back from active play 
-                  to focus on something bigger — <span className="text-white font-semibold">building the ultimate platform for the next generation of League talent.</span>
+                  After reaching <span className="text-yellow-400 font-semibold">Challenger</span> and coaching for Raven Gaming, 
+                  I hung up the keyboard. At 36, real life and work demand too much to maintain the grind — but my love for 
+                  League never faded. I'm still an <span className="text-white font-semibold">avid viewer and content enjoyer</span>, 
+                  watching the game evolve from the sidelines.
                 </p>
                 <p className="text-slate-300 mb-6 leading-relaxed">
-                  LoL-Matrix Pro isn't just another stats site. It's the coaching hub I wish existed when I was grinding through the ranks. 
-                  Real data, real strategies, and soon — <span className="text-green-400 font-semibold">real coaches ready to help you climb.</span>
+                  Now I'm channeling that passion into something bigger: <span className="text-purple-400 font-semibold">LoL-Matrix Pro</span> — 
+                  the platform I wish existed during my climb. Real data, real strategies, and soon, a team of coaches ready to help 
+                  the next generation reach their peak.
                 </p>
                 <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700/50 mb-4">
                   <div className="flex items-center gap-2 text-yellow-400 font-bold mb-2">
@@ -527,7 +553,8 @@ export default function App() {
                   <ul className="space-y-1 text-sm text-slate-300">
                     <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div> Peak Rank: <span className="text-yellow-400 font-bold">Challenger</span></li>
                     <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div> Former Coach: <span className="text-purple-400 font-bold">Raven Gaming</span></li>
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div> Status: <span className="text-blue-400 font-bold">Retired Pro, Platform Builder</span></li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div> Mains: <span className="text-blue-400 font-bold">Poppy, Zeri</span></li>
+                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div> Status: <span className="text-slate-300">Retired • Content Viewer • Platform Builder</span></li>
                   </ul>
                 </div>
                 <div className="space-y-3">
@@ -655,6 +682,617 @@ export default function App() {
               </div>
             </div>
 
+            {/* ============================================= */}
+            {/* THE NUMBERS GAME - LEAGUE ANALYTICS */}
+            {/* ============================================= */}
+            <div className="space-y-6">
+              {/* Philosophy Quote */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 p-8">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-purple-500/20 rounded-lg">
+                      <Eye size={24} className="text-purple-400" />
+                    </div>
+                    <h2 className="text-2xl font-black bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                      The Numbers Game
+                    </h2>
+                  </div>
+                  <blockquote className="text-lg text-slate-300 leading-relaxed italic border-l-4 border-purple-500 pl-4 mb-4">
+                    "League of Legends is essentially blind man's chess, where <span className="text-yellow-400 font-semibold not-italic">wards pierce the fog of war</span> to reveal the path ahead. 
+                    Victory hinges on crunching the numbers — <span className="text-green-400 font-semibold not-italic">stats, gold, and objectives</span> — while time remains the ultimate arbiter."
+                  </blockquote>
+                  <p className="text-slate-400">
+                    Shorter games magnify team mistakes, so <span className="text-white">prioritize early-game fundamentals</span>: shove your lane, follow proven rules, 
+                    and master the mechanics. This lets you snowball your lead, amplify your impact, and win far more consistently.
+                  </p>
+                </div>
+              </div>
+
+              {/* Key Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center">
+                  <div className="text-3xl font-black text-yellow-400">300g</div>
+                  <div className="text-xs text-slate-400 mt-1">Champion Kill</div>
+                </div>
+                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center">
+                  <div className="text-3xl font-black text-blue-400">14g</div>
+                  <div className="text-xs text-slate-400 mt-1">Melee Minion</div>
+                </div>
+                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center">
+                  <div className="text-3xl font-black text-purple-400">3000g</div>
+                  <div className="text-xs text-slate-400 mt-1">Baron Nashor</div>
+                </div>
+                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center">
+                  <div className="text-3xl font-black text-green-400">~107</div>
+                  <div className="text-xs text-slate-400 mt-1">CS @ 10min (Perfect)</div>
+                </div>
+              </div>
+
+              {/* Objective Values */}
+              <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                  <Trophy size={20} className="text-yellow-400" />
+                  <h3 className="font-bold text-lg">Objective Gold Values</h3>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                      { name: 'Dragon (First)', gold: '25g + 25g/player', total: '150g team', color: 'orange', icon: '🐉' },
+                      { name: 'Rift Herald', gold: '100g killer', total: '~400g plates', color: 'purple', icon: '👁️' },
+                      { name: 'Baron Nashor', gold: '300g + 600g/player', total: '3300g team', color: 'pink', icon: '🦑' },
+                      { name: 'Elder Dragon', gold: '50g + 100g/player', total: '550g + buff', color: 'red', icon: '🔥' },
+                      { name: 'Tower (Outer)', gold: '250g + 50g/player', total: '500g team', color: 'blue', icon: '🗼' },
+                      { name: 'Inhibitor', gold: '50g + 50g local', total: 'Super minions', color: 'yellow', icon: '💎' },
+                    ].map((obj, i) => (
+                      <div key={i} className="p-4 bg-slate-700/30 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-2xl">{obj.icon}</span>
+                          <span className="font-bold text-white">{obj.name}</span>
+                        </div>
+                        <div className="text-sm text-slate-400">{obj.gold}</div>
+                        <div className={`text-sm font-bold text-${obj.color}-400`}>{obj.total}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Win Rate by First Objective */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                    <TrendingUp size={20} className="text-green-400" />
+                    <h3 className="font-bold text-lg">First Objective Win Rates</h3>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    {[
+                      { obj: 'First Blood', rate: 54, color: 'red' },
+                      { obj: 'First Tower', rate: 67, color: 'blue' },
+                      { obj: 'First Dragon', rate: 58, color: 'orange' },
+                      { obj: 'First Herald', rate: 56, color: 'purple' },
+                      { obj: 'First Baron', rate: 82, color: 'pink' },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <span className="w-28 text-sm text-slate-400">{item.obj}</span>
+                        <div className="flex-1 h-6 bg-slate-700/50 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full bg-${item.color}-500 rounded-full flex items-center justify-end pr-2`}
+                            style={{ width: `${item.rate}%` }}
+                          >
+                            <span className="text-xs font-bold text-white">{item.rate}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <p className="text-xs text-slate-500 mt-4">* Based on aggregate ranked match data</p>
+                  </div>
+                </div>
+
+                {/* CS Benchmarks */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                    <Target size={20} className="text-yellow-400" />
+                    <h3 className="font-bold text-lg">CS Benchmarks by Time</h3>
+                  </div>
+                  <div className="p-6">
+                    <div className="space-y-3">
+                      {[
+                        { time: '5:00', perfect: 44, good: 38, avg: 30, rank: 'Laning' },
+                        { time: '10:00', perfect: 107, good: 85, avg: 65, rank: 'Early' },
+                        { time: '15:00', perfect: 158, good: 130, avg: 100, rank: 'Mid' },
+                        { time: '20:00', perfect: 210, good: 175, avg: 140, rank: 'Late' },
+                        { time: '25:00', perfect: 260, good: 220, avg: 180, rank: 'End' },
+                      ].map((row, i) => (
+                        <div key={i} className="grid grid-cols-5 gap-2 text-center text-sm">
+                          <span className="text-slate-400 text-left">{row.time}</span>
+                          <span className="text-green-400 font-bold">{row.perfect}</span>
+                          <span className="text-yellow-400">{row.good}</span>
+                          <span className="text-slate-400">{row.avg}</span>
+                          <span className="text-xs text-slate-500">{row.rank}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-center gap-6 mt-4 text-xs">
+                      <span className="flex items-center gap-1"><div className="w-2 h-2 bg-green-400 rounded"></div> Perfect</span>
+                      <span className="flex items-center gap-1"><div className="w-2 h-2 bg-yellow-400 rounded"></div> Good</span>
+                      <span className="flex items-center gap-1"><div className="w-2 h-2 bg-slate-400 rounded"></div> Average</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Game Length Stats */}
+              <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                  <Clock size={20} className="text-blue-400" />
+                  <h3 className="font-bold text-lg">Game Length & Time Windows</h3>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Average Game Length */}
+                    <div className="text-center">
+                      <div className="text-4xl font-black text-blue-400 mb-2">28:32</div>
+                      <div className="text-slate-400 text-sm">Average Game Length</div>
+                      <div className="text-xs text-slate-500 mt-1">Season 2024 Ranked</div>
+                    </div>
+                    
+                    {/* Power Spike Windows */}
+                    <div className="col-span-2 space-y-3">
+                      <h4 className="font-bold text-white mb-3">Critical Time Windows</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                          <div className="text-red-400 font-bold">0:00 - 3:00</div>
+                          <div className="text-xs text-slate-400">Level 1-2 • Invades & Cheese</div>
+                        </div>
+                        <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                          <div className="text-orange-400 font-bold">5:00 - 6:00</div>
+                          <div className="text-xs text-slate-400">First Void Grubs/Dragon</div>
+                        </div>
+                        <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                          <div className="text-yellow-400 font-bold">8:00 - 10:00</div>
+                          <div className="text-xs text-slate-400">Rift Herald • Tower Plays</div>
+                        </div>
+                        <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                          <div className="text-green-400 font-bold">14:00 - 16:00</div>
+                          <div className="text-xs text-slate-400">Tier 1 Falls • Roaming</div>
+                        </div>
+                        <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                          <div className="text-blue-400 font-bold">20:00</div>
+                          <div className="text-xs text-slate-400">Baron Spawns • Win Condition</div>
+                        </div>
+                        <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                          <div className="text-purple-400 font-bold">35:00+</div>
+                          <div className="text-xs text-slate-400">Elder Dragon • One Fight</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gold Efficiency & Economy */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Minion Values */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                    <Zap size={20} className="text-yellow-400" />
+                    <h3 className="font-bold text-lg">Minion Gold Values</h3>
+                  </div>
+                  <div className="p-6 space-y-3">
+                    {[
+                      { type: 'Melee Minion', base: 21, growth: '+0.125/min', color: 'red' },
+                      { type: 'Caster Minion', base: 14, growth: '+0.125/min', color: 'blue' },
+                      { type: 'Cannon Minion', base: 60, growth: '+3/spawn', color: 'yellow' },
+                      { type: 'Super Minion', base: 60, growth: 'Fixed', color: 'purple' },
+                    ].map((minion, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                        <span className="text-slate-300">{minion.type}</span>
+                        <div className="text-right">
+                          <span className={`text-${minion.color}-400 font-bold`}>{minion.base}g</span>
+                          <span className="text-xs text-slate-500 ml-2">{minion.growth}</span>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20 mt-4">
+                      <div className="text-green-400 font-bold">Full Wave @ 10:00 ≈ 125g</div>
+                      <div className="text-xs text-slate-400">Missing 1 wave = Missing a kill!</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vision Stats */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                    <Eye size={20} className="text-purple-400" />
+                    <h3 className="font-bold text-lg">Vision Statistics</h3>
+                  </div>
+                  <div className="p-6 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-slate-700/30 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-yellow-400">75g</div>
+                        <div className="text-xs text-slate-400">Control Ward</div>
+                      </div>
+                      <div className="p-3 bg-slate-700/30 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-blue-400">30g</div>
+                        <div className="text-xs text-slate-400">Ward Kill Reward</div>
+                      </div>
+                      <div className="p-3 bg-slate-700/30 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-400">90-120s</div>
+                        <div className="text-xs text-slate-400">Stealth Ward Duration</div>
+                      </div>
+                      <div className="p-3 bg-slate-700/30 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-400">∞</div>
+                        <div className="text-xs text-slate-400">Control Ward Duration</div>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 mt-4">
+                      <div className="text-blue-400 font-bold">Vision Score Target: 1.5 per minute</div>
+                      <div className="text-xs text-slate-400">30-minute game = 45+ vision score</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* XP & Level Breakpoints */}
+              <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                  <TrendingUp size={20} className="text-cyan-400" />
+                  <h3 className="font-bold text-lg">Level Power Spikes & XP</h3>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {[
+                      { lvl: 2, xp: '280 XP', time: '~1:50', spike: 'First trade', color: 'green' },
+                      { lvl: 3, xp: '580 XP', time: '~2:40', spike: 'All abilities', color: 'green' },
+                      { lvl: 6, xp: '2,100 XP', time: '~5:30', spike: 'Ultimate unlocked', color: 'yellow' },
+                      { lvl: 9, xp: '5,000 XP', time: '~10:00', spike: 'Max Q/W/E', color: 'orange' },
+                      { lvl: 11, xp: '7,600 XP', time: '~14:00', spike: 'Ult rank 2', color: 'red' },
+                      { lvl: 16, xp: '17,800 XP', time: '~24:00', spike: 'Ult rank 3', color: 'purple' },
+                    ].map((spike, i) => (
+                      <div key={i} className={`p-3 bg-${spike.color}-500/10 rounded-lg border border-${spike.color}-500/20 text-center`}>
+                        <div className={`text-2xl font-black text-${spike.color}-400`}>{spike.lvl}</div>
+                        <div className="text-xs text-slate-400">{spike.xp}</div>
+                        <div className="text-xs text-slate-500">@ {spike.time}</div>
+                        <div className="text-[10px] text-white mt-1">{spike.spike}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                    <div className="flex items-center gap-2 text-yellow-400 font-bold">
+                      <AlertCircle size={16} /> Solo Lane XP Advantage
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Solo laners hit level 2 off first wave + 1 melee. Bot lane needs full 2nd wave. 
+                      This 10-15 second window decides many lanes.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kill Gold Values */}
+              <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                  <Swords size={20} className="text-red-400" />
+                  <h3 className="font-bold text-lg">Kill & Bounty Gold</h3>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-white mb-3">Base Kill Values</h4>
+                      <div className="flex justify-between p-2 bg-slate-700/30 rounded"><span className="text-slate-400">Kill</span><span className="text-green-400 font-bold">300g</span></div>
+                      <div className="flex justify-between p-2 bg-slate-700/30 rounded"><span className="text-slate-400">Assist</span><span className="text-blue-400 font-bold">150g</span></div>
+                      <div className="flex justify-between p-2 bg-slate-700/30 rounded"><span className="text-slate-400">First Blood</span><span className="text-yellow-400 font-bold">400g</span></div>
+                      <div className="flex justify-between p-2 bg-slate-700/30 rounded"><span className="text-slate-400">Shutdown (2 kills)</span><span className="text-orange-400 font-bold">+150g</span></div>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-white mb-3">Bounty Scaling</h4>
+                      <div className="flex justify-between p-2 bg-slate-700/30 rounded"><span className="text-slate-400">3 Kill Streak</span><span className="text-orange-400 font-bold">+250g</span></div>
+                      <div className="flex justify-between p-2 bg-slate-700/30 rounded"><span className="text-slate-400">4 Kill Streak</span><span className="text-orange-400 font-bold">+350g</span></div>
+                      <div className="flex justify-between p-2 bg-slate-700/30 rounded"><span className="text-slate-400">5 Kill Streak</span><span className="text-red-400 font-bold">+450g</span></div>
+                      <div className="flex justify-between p-2 bg-slate-700/30 rounded"><span className="text-slate-400">Max Bounty</span><span className="text-red-400 font-bold">+1000g</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ============================================= */}
+              {/* INTERACTIVE CHARTS - REAL DATA VISUALIZATIONS */}
+              {/* ============================================= */}
+              
+              {/* Win Rate by Gold Lead Chart */}
+              <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                  <TrendingUp size={20} className="text-green-400" />
+                  <h3 className="font-bold text-lg">Win Rate by Gold Advantage</h3>
+                  <span className="ml-auto text-xs text-slate-500">The snowball effect is real</span>
+                </div>
+                <div className="p-6">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <AreaChart data={[
+                      { gold: '-10k', wr: 8 },
+                      { gold: '-7k', wr: 15 },
+                      { gold: '-5k', wr: 22 },
+                      { gold: '-3k', wr: 32 },
+                      { gold: '-1k', wr: 42 },
+                      { gold: 'Even', wr: 50 },
+                      { gold: '+1k', wr: 58 },
+                      { gold: '+3k', wr: 68 },
+                      { gold: '+5k', wr: 78 },
+                      { gold: '+7k', wr: 85 },
+                      { gold: '+10k', wr: 92 },
+                    ]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="goldWr" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22C55E" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#22C55E" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="gold" stroke="#64748B" fontSize={12} />
+                      <YAxis stroke="#64748B" fontSize={12} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                        formatter={(value) => [`${value}%`, 'Win Rate']}
+                      />
+                      <Area type="monotone" dataKey="wr" stroke="#22C55E" fillOpacity={1} fill="url(#goldWr)" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  <p className="text-xs text-slate-500 mt-4 text-center">A 3k gold lead translates to ~68% win rate. Every CS and objective matters!</p>
+                </div>
+              </div>
+
+              {/* Rank Distribution + Game Length Side by Side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Rank Distribution */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                    <Trophy size={20} className="text-yellow-400" />
+                    <h3 className="font-bold text-lg">Ranked Player Distribution</h3>
+                  </div>
+                  <div className="p-6">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={[
+                        { rank: 'Iron', pct: 2.3, fill: '#5C5C5C' },
+                        { rank: 'Bronze', pct: 17, fill: '#CD7F32' },
+                        { rank: 'Silver', pct: 22, fill: '#C0C0C0' },
+                        { rank: 'Gold', pct: 27, fill: '#FFD700' },
+                        { rank: 'Plat', pct: 17, fill: '#00CED1' },
+                        { rank: 'Emerald', pct: 9, fill: '#50C878' },
+                        { rank: 'Diamond', pct: 4, fill: '#B9F2FF' },
+                        { rank: 'Master+', pct: 1.7, fill: '#9B59B6' },
+                      ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <XAxis dataKey="rank" stroke="#64748B" fontSize={10} />
+                        <YAxis stroke="#64748B" fontSize={10} tickFormatter={(v) => `${v}%`} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                          formatter={(value) => [`${value}%`, 'Players']}
+                        />
+                        <Bar dataKey="pct" radius={[4, 4, 0, 0]}>
+                          {[
+                            { rank: 'Iron', fill: '#5C5C5C' },
+                            { rank: 'Bronze', fill: '#CD7F32' },
+                            { rank: 'Silver', fill: '#C0C0C0' },
+                            { rank: 'Gold', fill: '#FFD700' },
+                            { rank: 'Plat', fill: '#00CED1' },
+                            { rank: 'Emerald', fill: '#50C878' },
+                            { rank: 'Diamond', fill: '#B9F2FF' },
+                            { rank: 'Master+', fill: '#9B59B6' },
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <p className="text-xs text-slate-500 mt-2 text-center">Top 5% = Diamond+ | Top 1% = Master+</p>
+                  </div>
+                </div>
+
+                {/* Win Rate by Game Length */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                    <Clock size={20} className="text-blue-400" />
+                    <h3 className="font-bold text-lg">Scaling vs Early Game Champs</h3>
+                  </div>
+                  <div className="p-6">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={[
+                        { time: '15m', early: 58, scaling: 42 },
+                        { time: '20m', early: 55, scaling: 47 },
+                        { time: '25m', early: 52, scaling: 50 },
+                        { time: '30m', early: 48, scaling: 54 },
+                        { time: '35m', early: 44, scaling: 57 },
+                        { time: '40m', early: 40, scaling: 62 },
+                        { time: '45m+', early: 35, scaling: 68 },
+                      ]} margin={{ top: 10, right: 30, left: -10, bottom: 0 }}>
+                        <XAxis dataKey="time" stroke="#64748B" fontSize={11} />
+                        <YAxis stroke="#64748B" fontSize={11} domain={[30, 70]} tickFormatter={(v) => `${v}%`} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                          formatter={(value) => [`${value}%`, '']}
+                        />
+                        <Legend />
+                        <Line type="monotone" dataKey="early" stroke="#EF4444" strokeWidth={2} name="Early Game" dot={{ fill: '#EF4444' }} />
+                        <Line type="monotone" dataKey="scaling" stroke="#3B82F6" strokeWidth={2} name="Scaling" dot={{ fill: '#3B82F6' }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                    <p className="text-xs text-slate-500 mt-2 text-center">End games early or stall for late — know your win condition</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Role Impact Chart */}
+              <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                  <LayoutDashboard size={20} className="text-purple-400" />
+                  <h3 className="font-bold text-lg">Role Impact by Game Phase</h3>
+                </div>
+                <div className="p-6">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <RadarChart data={[
+                      { phase: 'Early Game', Top: 70, Jungle: 95, Mid: 85, ADC: 40, Support: 80 },
+                      { phase: 'Mid Game', Top: 85, Jungle: 80, Mid: 90, ADC: 75, Support: 75 },
+                      { phase: 'Late Game', Top: 75, Jungle: 60, Mid: 85, ADC: 100, Support: 70 },
+                      { phase: 'Teamfights', Top: 80, Jungle: 75, Mid: 90, ADC: 95, Support: 85 },
+                      { phase: 'Objectives', Top: 70, Jungle: 100, Mid: 75, ADC: 85, Support: 65 },
+                      { phase: 'Vision', Top: 50, Jungle: 80, Mid: 60, ADC: 30, Support: 100 },
+                    ]}>
+                      <PolarGrid stroke="#334155" />
+                      <PolarAngleAxis dataKey="phase" tick={{ fill: '#94A3B8', fontSize: 11 }} />
+                      <Tooltip contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }} />
+                      <Radar name="Top" dataKey="Top" stroke="#F97316" fill="#F97316" fillOpacity={0.2} strokeWidth={2} />
+                      <Radar name="Jungle" dataKey="Jungle" stroke="#22C55E" fill="#22C55E" fillOpacity={0.2} strokeWidth={2} />
+                      <Radar name="Mid" dataKey="Mid" stroke="#A855F7" fill="#A855F7" fillOpacity={0.2} strokeWidth={2} />
+                      <Radar name="ADC" dataKey="ADC" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.2} strokeWidth={2} />
+                      <Radar name="Support" dataKey="Support" stroke="#EC4899" fill="#EC4899" fillOpacity={0.2} strokeWidth={2} />
+                      <Legend />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* CS Difference Impact */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                    <Target size={20} className="text-yellow-400" />
+                    <h3 className="font-bold text-lg">CS Lead Impact @ 15 Minutes</h3>
+                  </div>
+                  <div className="p-6">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={[
+                        { diff: '-30', wr: 35, fill: '#EF4444' },
+                        { diff: '-20', wr: 41, fill: '#F97316' },
+                        { diff: '-10', wr: 46, fill: '#EAB308' },
+                        { diff: 'Even', wr: 50, fill: '#64748B' },
+                        { diff: '+10', wr: 54, fill: '#84CC16' },
+                        { diff: '+20', wr: 59, fill: '#22C55E' },
+                        { diff: '+30', wr: 65, fill: '#10B981' },
+                      ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <XAxis dataKey="diff" stroke="#64748B" fontSize={11} />
+                        <YAxis stroke="#64748B" fontSize={11} domain={[30, 70]} tickFormatter={(v) => `${v}%`} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                          formatter={(value) => [`${value}%`, 'Win Rate']}
+                          labelFormatter={(label) => `CS Diff: ${label}`}
+                        />
+                        <Bar dataKey="wr" radius={[4, 4, 0, 0]}>
+                          {[
+                            { fill: '#EF4444' },
+                            { fill: '#F97316' },
+                            { fill: '#EAB308' },
+                            { fill: '#64748B' },
+                            { fill: '#84CC16' },
+                            { fill: '#22C55E' },
+                            { fill: '#10B981' },
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <p className="text-xs text-slate-500 mt-2 text-center">+30 CS at 15min ≈ 1 kill worth of gold advantage</p>
+                  </div>
+                </div>
+
+                {/* Dragon Soul Win Rates */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                    <Flame size={20} className="text-orange-400" />
+                    <h3 className="font-bold text-lg">Dragon Soul Win Rates</h3>
+                  </div>
+                  <div className="p-6">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={[
+                        { soul: 'Infernal', wr: 84, fill: '#EF4444' },
+                        { soul: 'Mountain', wr: 82, fill: '#A1887F' },
+                        { soul: 'Ocean', wr: 81, fill: '#3B82F6' },
+                        { soul: 'Cloud', wr: 79, fill: '#94A3B8' },
+                        { soul: 'Hextech', wr: 80, fill: '#06B6D4' },
+                        { soul: 'Chemtech', wr: 78, fill: '#84CC16' },
+                      ]} layout="vertical" margin={{ top: 10, right: 30, left: 60, bottom: 0 }}>
+                        <XAxis type="number" stroke="#64748B" fontSize={11} domain={[70, 90]} tickFormatter={(v) => `${v}%`} />
+                        <YAxis type="category" dataKey="soul" stroke="#64748B" fontSize={11} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                          formatter={(value) => [`${value}%`, 'Win Rate']}
+                        />
+                        <Bar dataKey="wr" radius={[0, 4, 4, 0]}>
+                          {[
+                            { fill: '#EF4444' },
+                            { fill: '#A1887F' },
+                            { fill: '#3B82F6' },
+                            { fill: '#94A3B8' },
+                            { fill: '#06B6D4' },
+                            { fill: '#84CC16' },
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <p className="text-xs text-slate-500 mt-2 text-center">Dragon soul = ~80% win rate. Contest every dragon!</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Damage Type Distribution by Role */}
+              <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+                  <Zap size={20} className="text-red-400" />
+                  <h3 className="font-bold text-lg">Average Damage Share by Role</h3>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-5 gap-4">
+                    {[
+                      { role: 'Top', dmg: 18, color: '#F97316', icon: '🛡️' },
+                      { role: 'Jungle', dmg: 16, color: '#22C55E', icon: '🌲' },
+                      { role: 'Mid', dmg: 26, color: '#A855F7', icon: '⚡' },
+                      { role: 'ADC', dmg: 28, color: '#3B82F6', icon: '🏹' },
+                      { role: 'Support', dmg: 12, color: '#EC4899', icon: '💫' },
+                    ].map((r, i) => (
+                      <div key={i} className="text-center">
+                        <div className="text-2xl mb-2">{r.icon}</div>
+                        <div className="text-sm text-slate-400 mb-2">{r.role}</div>
+                        <div className="h-32 bg-slate-700/30 rounded-lg relative overflow-hidden">
+                          <div 
+                            className="absolute bottom-0 w-full rounded-b-lg transition-all"
+                            style={{ height: `${r.dmg * 3}%`, backgroundColor: r.color }}
+                          ></div>
+                        </div>
+                        <div className="font-bold mt-2" style={{ color: r.color }}>{r.dmg}%</div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-4 text-center">ADC + Mid = 54% of team damage. Protect your carries!</p>
+                </div>
+              </div>
+
+              {/* Key Insight Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 rounded-xl border border-green-500/30 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-green-500/20 rounded-lg"><Check size={20} className="text-green-400" /></div>
+                    <h4 className="font-bold text-green-400">The 15-Minute Rule</h4>
+                  </div>
+                  <p className="text-sm text-slate-300">70% of games are decided by the 15-minute mark. Focus on early fundamentals — CS, trades, and objective timing.</p>
+                </div>
+                <div className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 rounded-xl border border-yellow-500/30 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-yellow-500/20 rounded-lg"><Zap size={20} className="text-yellow-400" /></div>
+                    <h4 className="font-bold text-yellow-400">Vision Wins Games</h4>
+                  </div>
+                  <p className="text-sm text-slate-300">Teams with higher vision score win 62% of games. Buy control wards every back. Vision = Information = Winning plays.</p>
+                </div>
+                <div className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-blue-500/20 rounded-lg"><Target size={20} className="text-blue-400" /></div>
+                    <h4 className="font-bold text-blue-400">Objectives {'>'} Kills</h4>
+                  </div>
+                  <p className="text-sm text-slate-300">Baron provides 3300g team gold. That's 11 kills worth. A clean Baron call beats a flashy 1v5 every time.</p>
+                </div>
+              </div>
+            </div>
+
             {/* Data Source Info */}
             <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 rounded-2xl border border-green-500/30 p-6">
               <div className="flex items-start gap-4">
@@ -702,8 +1340,640 @@ export default function App() {
           </div>
         )}
 
+        {/* ============================================= */}
+        {/* ANALYZE TAB - Player Performance Analysis */}
+        {/* ============================================= */}
+        {tab === 'analyze' && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-2xl border border-purple-500/30 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-purple-500/20 rounded-xl">
+                  <Search size={28} className="text-purple-400" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-black text-white">Player Analysis</h1>
+                  <p className="text-slate-400">Deep dive into your matches with mathematical precision</p>
+                </div>
+              </div>
+              <p className="text-slate-300 text-sm">
+                Enter a Riot ID to analyze match performance, identify weaknesses, and get personalized improvement recommendations.
+                We'll crunch the numbers on CS, vision, builds, objectives, and more.
+              </p>
+            </div>
+
+            {/* Search Form */}
+            <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <Search size={20} className="text-blue-400" /> Player Lookup
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-1">
+                  <label className="text-xs text-slate-400 mb-1 block">Game Name</label>
+                  <input 
+                    type="text" 
+                    value={analyzeSearch.gameName}
+                    onChange={(e) => setAnalyzeSearch({...analyzeSearch, gameName: e.target.value})}
+                    placeholder="Morpheus"
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="text-xs text-slate-400 mb-1 block">Tag Line</label>
+                  <input 
+                    type="text" 
+                    value={analyzeSearch.tagLine}
+                    onChange={(e) => setAnalyzeSearch({...analyzeSearch, tagLine: e.target.value})}
+                    placeholder="NA1"
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Region</label>
+                  <select 
+                    value={analyzeSearch.region}
+                    onChange={(e) => setAnalyzeSearch({...analyzeSearch, region: e.target.value})}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                  >
+                    <option value="NA1">North America</option>
+                    <option value="EUW1">Europe West</option>
+                    <option value="EUN1">Europe Nordic & East</option>
+                    <option value="KR">Korea</option>
+                    <option value="BR1">Brazil</option>
+                    <option value="JP1">Japan</option>
+                    <option value="OC1">Oceania</option>
+                    <option value="LA1">Latin America North</option>
+                    <option value="LA2">Latin America South</option>
+                    <option value="TR1">Turkey</option>
+                    <option value="RU">Russia</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button 
+                    onClick={async () => {
+                      setAnalyzeLoading(true);
+                      setAnalyzeError(null);
+                      setPlayerData(null);
+                      
+                      try {
+                        // Step 1: Look up summoner
+                        const summonerRes = await fetch(
+                          `/api/summoner?gameName=${encodeURIComponent(analyzeSearch.gameName)}&tagLine=${encodeURIComponent(analyzeSearch.tagLine || 'NA1')}&platform=${analyzeSearch.region}`
+                        );
+                        
+                        if (!summonerRes.ok) {
+                          const error = await summonerRes.json();
+                          throw new Error(error.error || 'Failed to find summoner');
+                        }
+                        
+                        const summoner = await summonerRes.json();
+                        
+                        // Step 2: Get match history
+                        const matchesRes = await fetch(
+                          `/api/matches?puuid=${summoner.puuid}&platform=${analyzeSearch.region}&count=10`
+                        );
+                        
+                        if (!matchesRes.ok) {
+                          const error = await matchesRes.json();
+                          throw new Error(error.error || 'Failed to fetch matches');
+                        }
+                        
+                        const matchData = await matchesRes.json();
+                        
+                        // Step 3: Analyze matches
+                        const analysisRes = await fetch('/api/analyze', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            matches: matchData.matches,
+                            playerRank: summoner.rank?.tier?.toLowerCase() || 'gold'
+                          })
+                        });
+                        
+                        if (!analysisRes.ok) {
+                          const error = await analysisRes.json();
+                          throw new Error(error.error || 'Analysis failed');
+                        }
+                        
+                        const analysis = await analysisRes.json();
+                        
+                        // Find main role
+                        const roleCounts = {};
+                        analysis.matches.forEach(m => {
+                          const role = m.role || 'UNKNOWN';
+                          roleCounts[role] = (roleCounts[role] || 0) + 1;
+                        });
+                        const mainRole = Object.entries(roleCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+                        
+                        // Format data for display
+                        const formattedData = {
+                          summoner: {
+                            name: summoner.gameName,
+                            tag: summoner.tagLine,
+                            level: summoner.summonerLevel,
+                            rank: summoner.rank ? `${summoner.rank.tier} ${summoner.rank.rank}` : 'Unranked',
+                            lp: summoner.rank?.lp || 0,
+                            profileIcon: summoner.profileIconId
+                          },
+                          recentMatches: analysis.matches.map((m, i) => ({
+                            id: i + 1,
+                            matchId: m.matchId,
+                            champion: m.champion,
+                            role: m.role || 'N/A',
+                            win: m.win,
+                            kda: m.kda,
+                            kdaRatio: m.kdaRatio,
+                            cs: m.cs,
+                            csPerMin: m.csPerMin,
+                            duration: m.duration,
+                            grade: m.grade,
+                            visionScore: m.visionScore,
+                            damage: m.damage,
+                            killParticipation: m.killParticipation,
+                            issues: m.issues,
+                            strengths: m.strengths,
+                            goldLost: m.goldLost,
+                            missedCS: m.missedCS
+                          })),
+                          overview: {
+                            winRate: analysis.overview.winRate,
+                            avgKDA: analysis.averages.kda,
+                            avgCS: Math.round(analysis.averages.csPerMin * 30), // Approx avg CS per game
+                            avgCSPerMin: analysis.averages.csPerMin,
+                            avgVision: Math.round(analysis.averages.visionPerMin * 30),
+                            avgVisionPerMin: analysis.averages.visionPerMin,
+                            avgKP: analysis.averages.killParticipation,
+                            mainRole: mainRole,
+                            gamesAnalyzed: analysis.overview.totalGames
+                          },
+                          recurringIssues: analysis.recurringIssues,
+                          champStats: analysis.champStats,
+                          roleStats: analysis.roleStats,
+                          topPriorities: analysis.topPriorities
+                        };
+                        
+                        setPlayerData(formattedData);
+                        
+                      } catch (error) {
+                        console.error('Analysis error:', error);
+                        setAnalyzeError(error.message || 'Failed to analyze player');
+                      } finally {
+                        setAnalyzeLoading(false);
+                      }
+                    }}
+                    disabled={analyzeLoading || !analyzeSearch.gameName}
+                    className="w-full px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:from-slate-600 disabled:to-slate-600 rounded-lg font-bold flex items-center justify-center gap-2 transition-all"
+                  >
+                    {analyzeLoading ? (
+                      <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> Analyzing...</>
+                    ) : (
+                      <><Search size={18} /> Analyze</>
+                    )}
+                  </button>
+                </div>
+              </div>
+              {analyzeError && (
+                <div className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-center gap-2">
+                  <AlertCircle size={16} /> {analyzeError}
+                </div>
+              )}
+              <p className="mt-4 text-xs text-slate-500">
+                <Info size={12} className="inline mr-1" />
+                Connected to Riot Games API. Enter your Riot ID (GameName#TagLine) to analyze your recent ranked matches.
+              </p>
+            </div>
+
+            {/* Results Section */}
+            {playerData && (
+              <>
+                {/* Player Overview */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center text-2xl font-black">
+                        {playerData.summoner.name[0]}
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-white">{playerData.summoner.name}<span className="text-slate-400">#{playerData.summoner.tag}</span></h2>
+                        <p className="text-sm text-slate-400">Level {playerData.summoner.level} • {playerData.summoner.rank} ({playerData.summoner.lp} LP)</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-slate-400">Last {playerData.overview.gamesAnalyzed} Games</div>
+                      <div className={`text-2xl font-black ${playerData.overview.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                        {playerData.overview.winRate}% WR
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-slate-700/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-400">{playerData.overview.avgKDA}</div>
+                        <div className="text-xs text-slate-400">Avg KDA</div>
+                      </div>
+                      <div className="bg-slate-700/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-yellow-400">{playerData.overview.avgCS}</div>
+                        <div className="text-xs text-slate-400">Avg CS</div>
+                      </div>
+                      <div className="bg-slate-700/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-purple-400">{playerData.overview.avgVision}</div>
+                        <div className="text-xs text-slate-400">Avg Vision</div>
+                      </div>
+                      <div className="bg-slate-700/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-green-400">{playerData.overview.mainRole}</div>
+                        <div className="text-xs text-slate-400">Main Role</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Match History */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Clock size={20} className="text-blue-400" /> Recent Matches
+                    </h3>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    {playerData.recentMatches.map((match, i) => (
+                      <div 
+                        key={match.id}
+                        onClick={() => setSelectedMatch(selectedMatch === match.id ? null : match.id)}
+                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                          match.win ? 'bg-green-500/10 border-green-500/30 hover:border-green-500/50' : 'bg-red-500/10 border-red-500/30 hover:border-red-500/50'
+                        } ${selectedMatch === match.id ? 'ring-2 ring-purple-500' : ''}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <ChampIcon id={match.champion} size={48} className="border-2 border-slate-600" />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold">{match.champion}</span>
+                              <span className="text-xs px-2 py-0.5 bg-slate-700 rounded">{match.role}</span>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded ${match.win ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                {match.win ? 'VICTORY' : 'DEFEAT'}
+                              </span>
+                            </div>
+                            <div className="text-sm text-slate-400 mt-1">
+                              <span className="text-white font-medium">{match.kda}</span> KDA • 
+                              <span className="text-yellow-400 ml-1">{match.cs} CS</span> • 
+                              <span className="ml-1">{match.duration}min</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-2xl font-black ${
+                              match.grade.startsWith('S') ? 'text-yellow-400' : 
+                              match.grade.startsWith('A') ? 'text-green-400' : 
+                              match.grade.startsWith('B') ? 'text-blue-400' : 'text-slate-400'
+                            }`}>
+                              {match.grade}
+                            </div>
+                            <div className="text-xs text-slate-500">Click to analyze</div>
+                          </div>
+                        </div>
+
+                        {/* Expanded Analysis */}
+                        {selectedMatch === match.id && (
+                          <div className="mt-4 pt-4 border-t border-slate-700/50 space-y-4">
+                            {/* CS Analysis */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div className="bg-slate-800/50 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Target size={16} className="text-yellow-400" />
+                                  <span className="font-bold text-sm">CS Analysis</span>
+                                </div>
+                                <div className="text-2xl font-bold text-yellow-400">{match.csPerMin || (match.cs / match.duration).toFixed(1)}/min</div>
+                                <div className="text-xs text-slate-400 mt-1">
+                                  {parseFloat(match.csPerMin || match.cs / match.duration) >= 8 ? '✓ Excellent farming' : 
+                                   parseFloat(match.csPerMin || match.cs / match.duration) >= 7 ? '○ Good farming' :
+                                   parseFloat(match.csPerMin || match.cs / match.duration) >= 6 ? '△ Average farming' : '✗ Needs improvement'}
+                                </div>
+                                <div className="mt-2 text-xs text-red-400">
+                                  Missed ~{match.missedCS || Math.round((match.duration * 10.5) - match.cs)} CS
+                                  <span className="text-slate-500 ml-1">({match.goldLost || Math.round(((match.duration * 10.5) - match.cs) * 20)}g lost)</span>
+                                </div>
+                              </div>
+
+                              <div className="bg-slate-800/50 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Eye size={16} className="text-purple-400" />
+                                  <span className="font-bold text-sm">Vision</span>
+                                </div>
+                                <div className="text-2xl font-bold text-purple-400">{match.visionScore || 'N/A'}</div>
+                                <div className="text-xs text-slate-400 mt-1">Vision Score</div>
+                                <div className="mt-2 text-xs text-slate-500">
+                                  {match.killParticipation ? `${match.killParticipation}% Kill Participation` : ''}
+                                </div>
+                              </div>
+
+                              <div className="bg-slate-800/50 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Flame size={16} className="text-orange-400" />
+                                  <span className="font-bold text-sm">Damage</span>
+                                </div>
+                                <div className="text-2xl font-bold text-orange-400">{match.damage ? (match.damage / 1000).toFixed(1) + 'k' : 'N/A'}</div>
+                                <div className="text-xs text-slate-400 mt-1">Total Damage</div>
+                                <div className="mt-2 text-xs text-slate-500">
+                                  {match.duration} min game
+                                </div>
+                              </div>
+
+                              <div className="bg-slate-800/50 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Activity size={16} className="text-blue-400" />
+                                  <span className="font-bold text-sm">KDA</span>
+                                </div>
+                                <div className="text-2xl font-bold text-blue-400">{match.kdaRatio || ((parseInt(match.kda?.split('/')[0] || 0) + parseInt(match.kda?.split('/')[2] || 0)) / Math.max(1, parseInt(match.kda?.split('/')[1] || 1))).toFixed(2)}</div>
+                                <div className="text-xs text-slate-400 mt-1">{match.kda}</div>
+                                <div className="mt-2 text-xs text-slate-500">
+                                  {parseInt(match.kda?.split('/')[1] || 0) > 5 ? '⚠ Died too often' : '✓ Good survivability'}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Issues Found */}
+                            {match.issues && match.issues.length > 0 && (
+                              <div className="bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-lg p-4 border border-yellow-500/20">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <AlertCircle size={16} className="text-yellow-400" />
+                                  <span className="font-bold text-yellow-400">Issues Found ({match.issues.length})</span>
+                                </div>
+                                <ul className="space-y-2 text-sm">
+                                  {match.issues.map((issue, idx) => (
+                                    <li key={idx} className="flex items-start gap-2">
+                                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                        issue.severity === 'high' ? 'bg-red-500/20 text-red-400' : 
+                                        issue.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-500/20 text-slate-400'
+                                      }`}>{issue.severity}</span>
+                                      <div>
+                                        <span className="text-slate-300">{issue.message}</span>
+                                        {issue.suggestion && (
+                                          <p className="text-xs text-slate-500 mt-0.5">💡 {issue.suggestion}</p>
+                                        )}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Strengths */}
+                            {match.strengths && match.strengths.length > 0 && (
+                              <div className="bg-gradient-to-r from-green-900/20 to-emerald-900/20 rounded-lg p-4 border border-green-500/20">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Check size={16} className="text-green-400" />
+                                  <span className="font-bold text-green-400">Strengths</span>
+                                </div>
+                                <ul className="space-y-1 text-sm">
+                                  {match.strengths.map((s, idx) => (
+                                    <li key={idx} className="flex items-center gap-2 text-slate-300">
+                                      <span className="text-green-400">✓</span> {s.message}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recurring Issues Summary */}
+                {playerData.recurringIssues && playerData.recurringIssues.length > 0 && (
+                  <div className="bg-gradient-to-br from-red-900/30 to-orange-900/30 rounded-2xl border border-red-500/30 p-6">
+                    <h3 className="font-bold text-lg text-red-400 mb-4 flex items-center gap-2">
+                      <AlertCircle size={20} /> Recurring Issues (Patterns Across Games)
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {playerData.recurringIssues.map((issue, i) => (
+                        <div key={i} className="bg-slate-800/50 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-white capitalize">{issue.type.replace(/_/g, ' ')}</span>
+                            <span className="text-xs px-2 py-1 bg-red-500/20 text-red-400 rounded">{issue.frequency}% of games</span>
+                          </div>
+                          <div className="text-sm text-slate-400">Found in {issue.games} matches</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Champion Stats */}
+                {playerData.champStats && Object.keys(playerData.champStats).length > 0 && (
+                  <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-700/50">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <Trophy size={20} className="text-yellow-400" /> Champion Performance
+                      </h3>
+                    </div>
+                    <div className="p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.entries(playerData.champStats).map(([champ, stats]) => (
+                          <div key={champ} className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-xl">
+                            <ChampIcon id={champ} size={48} className="border-2 border-slate-600" />
+                            <div className="flex-1">
+                              <div className="font-bold text-white">{champ}</div>
+                              <div className="text-sm text-slate-400">{stats.games} games</div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`font-bold ${stats.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                                {stats.winRate}% WR
+                              </div>
+                              <div className="text-xs text-slate-400">{stats.avgKDA} KDA</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Overall Analysis Summary */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Strengths */}
+                  <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 rounded-2xl border border-green-500/30 p-6">
+                    <h3 className="font-bold text-lg text-green-400 mb-4 flex items-center gap-2">
+                      <Check size={20} /> Strengths
+                    </h3>
+                    <ul className="space-y-3">
+                      {playerData.overview.winRate >= 50 && (
+                        <li className="flex items-start gap-3 text-slate-300">
+                          <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-xs font-bold shrink-0">✓</div>
+                          <span><b>Win Rate:</b> {playerData.overview.winRate}% is positive - you're climbing!</span>
+                        </li>
+                      )}
+                      <li className="flex items-start gap-3 text-slate-300">
+                        <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-xs font-bold shrink-0">✓</div>
+                        <span><b>Role Focus:</b> Playing {playerData.overview.mainRole} consistently helps mastery</span>
+                      </li>
+                      {playerData.overview.avgKDA >= 2.5 && (
+                        <li className="flex items-start gap-3 text-slate-300">
+                          <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-xs font-bold shrink-0">✓</div>
+                          <span><b>KDA:</b> {playerData.overview.avgKDA} average shows good fight selection</span>
+                        </li>
+                      )}
+                      {playerData.overview.avgCSPerMin >= 6.5 && (
+                        <li className="flex items-start gap-3 text-slate-300">
+                          <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-xs font-bold shrink-0">✓</div>
+                          <span><b>CS:</b> {playerData.overview.avgCSPerMin}/min is solid farming</span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+
+                  {/* Areas to Improve */}
+                  <div className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 rounded-2xl border border-yellow-500/30 p-6">
+                    <h3 className="font-bold text-lg text-yellow-400 mb-4 flex items-center gap-2">
+                      <AlertCircle size={20} /> Priority Improvements
+                    </h3>
+                    <ul className="space-y-3">
+                      {playerData.topPriorities && playerData.topPriorities.length > 0 ? (
+                        playerData.topPriorities.map((priority, i) => (
+                          <li key={i} className="flex items-start gap-3 text-slate-300">
+                            <div className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-xs font-bold shrink-0">{i + 1}</div>
+                            <div>
+                              <b className="capitalize">{priority.replace(/_/g, ' ')}:</b> This appeared in multiple games
+                              <p className="text-xs text-slate-500 mt-1">Focus on improving this area to see consistent rank gains.</p>
+                            </div>
+                          </li>
+                        ))
+                      ) : (
+                        <>
+                          {playerData.overview.avgCSPerMin < 6.5 && (
+                            <li className="flex items-start gap-3 text-slate-300">
+                              <div className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-xs font-bold shrink-0">1</div>
+                              <div>
+                                <b>CS/min:</b> {playerData.overview.avgCSPerMin}/min - aim for 7+ at higher ranks
+                                <p className="text-xs text-slate-500 mt-1">Practice last-hitting daily. Every 15 CS = 1 kill worth of gold.</p>
+                              </div>
+                            </li>
+                          )}
+                          {playerData.overview.avgVisionPerMin < 1.0 && (
+                            <li className="flex items-start gap-3 text-slate-300">
+                              <div className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-xs font-bold shrink-0">2</div>
+                              <div>
+                                <b>Vision:</b> {playerData.overview.avgVisionPerMin}/min vision score
+                                <p className="text-xs text-slate-500 mt-1">Buy control wards. Use trinket on cooldown. Vision wins games.</p>
+                              </div>
+                            </li>
+                          )}
+                          {playerData.overview.winRate < 50 && (
+                            <li className="flex items-start gap-3 text-slate-300">
+                              <div className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-xs font-bold shrink-0">3</div>
+                              <div>
+                                <b>Win Rate:</b> {playerData.overview.winRate}% - focus on fundamentals
+                                <p className="text-xs text-slate-500 mt-1">Review losses. Identify common patterns and fix them one at a time.</p>
+                              </div>
+                            </li>
+                          )}
+                        </>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Benchmark Comparison Chart */}
+                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-700/50">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <BarChart size={20} className="text-purple-400" /> Performance vs Rank Benchmarks
+                    </h3>
+                  </div>
+                  <div className="p-6">
+                    <ResponsiveContainer width="100%" height={280}>
+                      <RadarChart data={[
+                        { stat: 'CS/min', you: Math.min(100, (playerData.overview.avgCSPerMin || playerData.overview.avgCS / 30) * 12), benchmark: 65, max: 100 },
+                        { stat: 'KDA', you: Math.min(100, playerData.overview.avgKDA * 25), benchmark: 60, max: 100 },
+                        { stat: 'Vision', you: Math.min(100, (playerData.overview.avgVisionPerMin || playerData.overview.avgVision / 30) * 50), benchmark: 55, max: 100 },
+                        { stat: 'Win Rate', you: playerData.overview.winRate, benchmark: 50, max: 100 },
+                        { stat: 'Kill Part.', you: playerData.overview.avgKP || 50, benchmark: 55, max: 100 },
+                      ]}>
+                        <PolarGrid stroke="#334155" />
+                        <PolarAngleAxis dataKey="stat" tick={{ fill: '#94A3B8', fontSize: 12 }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }} />
+                        <Radar name="You" dataKey="you" stroke="#A855F7" fill="#A855F7" fillOpacity={0.3} strokeWidth={2} />
+                        <Radar name="Rank Avg" dataKey="benchmark" stroke="#64748B" fill="#64748B" fillOpacity={0.1} strokeWidth={1} strokeDasharray="5 5" />
+                        <Legend />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                    <p className="text-xs text-slate-500 text-center mt-2">Purple = Your stats | Dashed = Rank average</p>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* No Data State */}
+            {!playerData && !analyzeLoading && (
+              <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-12 text-center">
+                <Search size={64} className="mx-auto text-slate-600 mb-4" />
+                <h3 className="text-xl font-bold text-slate-400 mb-2">Enter a Riot ID to Begin</h3>
+                <p className="text-slate-500 max-w-md mx-auto">
+                  We'll analyze match history, calculate performance metrics, and provide personalized 
+                  recommendations based on mathematical analysis of your gameplay.
+                </p>
+              </div>
+            )}
+
+            {/* Analysis Features Info */}
+            <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <Info size={20} className="text-blue-400" /> What We Analyze
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { icon: Target, title: 'CS Efficiency', desc: 'Minions killed vs theoretical max, gold lost from missed CS', color: 'yellow' },
+                  { icon: Clock, title: 'Game Pacing', desc: 'Did you close games at optimal times for your team comp?', color: 'blue' },
+                  { icon: Wrench, title: 'Build Analysis', desc: 'Did you adapt your build to enemy team composition?', color: 'green' },
+                  { icon: Eye, title: 'Vision Control', desc: 'Ward placement, control wards bought, vision score', color: 'purple' },
+                  { icon: Swords, title: 'Combat Stats', desc: 'Kill participation, damage share, death analysis', color: 'red' },
+                  { icon: Trophy, title: 'Objectives', desc: 'Dragon/Baron participation, tower pressure, map control', color: 'orange' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 bg-slate-700/30 rounded-lg">
+                    <div className={`p-2 bg-${item.color}-500/20 rounded-lg shrink-0`}>
+                      <item.icon size={18} className={`text-${item.color}-400`} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-white">{item.title}</div>
+                      <div className="text-xs text-slate-400">{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Role-Specific Analysis Info */}
+            <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <Activity size={20} className="text-green-400" /> Role-Specific Metrics
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {[
+                  { role: 'Top', metrics: ['Split push timing', 'TP usage', 'Lane freezing', 'Dive setup'], color: 'orange' },
+                  { role: 'Jungle', metrics: ['Pathing efficiency', 'Objective control', 'Gank timing', 'Counter-jungling'], color: 'green' },
+                  { role: 'Mid', metrics: ['Roam timing', 'Wave manipulation', 'Vision placement', 'Priority generation'], color: 'purple' },
+                  { role: 'ADC', metrics: ['CS perfection', 'Positioning', 'Damage uptime', 'Survivability'], color: 'blue' },
+                  { role: 'Support', metrics: ['Vision score', 'Roam impact', 'Peel effectiveness', 'Engage timing'], color: 'pink' },
+                ].map((role, i) => (
+                  <div key={i} className={`p-4 bg-${role.color}-500/10 rounded-xl border border-${role.color}-500/20`}>
+                    <div className={`font-bold text-${role.color}-400 mb-2`}>{role.role}</div>
+                    <ul className="space-y-1">
+                      {role.metrics.map((m, j) => (
+                        <li key={j} className="text-xs text-slate-400 flex items-center gap-1">
+                          <div className={`w-1 h-1 bg-${role.color}-400 rounded-full`}></div>
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* FILTERS - Only show on non-home tabs */}
-        {tab !== 'home' && (
+        {tab !== 'home' && tab !== 'analyze' && (
         <div className="flex gap-3 mb-6 flex-wrap items-center">
           <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm">
             <option value="All">All Roles</option>
