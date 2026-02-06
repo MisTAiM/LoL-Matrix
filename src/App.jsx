@@ -832,30 +832,31 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Average Game Length */}
                     <div className="text-center">
-                      <div className="text-4xl font-black text-blue-400 mb-2">28:32</div>
+                      <div className="text-4xl font-black text-blue-400 mb-2">27:45</div>
                       <div className="text-slate-400 text-sm">Average Game Length</div>
-                      <div className="text-xs text-slate-500 mt-1">Season 2024 Ranked</div>
+                      <div className="text-xs text-slate-500 mt-1">Season 16 (2026) Ranked</div>
+                      <div className="text-xs text-green-400 mt-1">↓ Faster with 30s minion spawn</div>
                     </div>
                     
-                    {/* Power Spike Windows */}
+                    {/* Power Spike Windows - UPDATED FOR 2026 */}
                     <div className="col-span-2 space-y-3">
-                      <h4 className="font-bold text-white mb-3">Critical Time Windows</h4>
+                      <h4 className="font-bold text-white mb-3">Critical Time Windows <span className="text-xs text-yellow-400 font-normal">(Season 16 Timers)</span></h4>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                          <div className="text-red-400 font-bold">0:00 - 3:00</div>
-                          <div className="text-xs text-slate-400">Level 1-2 • Invades & Cheese</div>
+                          <div className="text-red-400 font-bold">0:30</div>
+                          <div className="text-xs text-slate-400">Minions Spawn • Lane Starts</div>
                         </div>
                         <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
                           <div className="text-orange-400 font-bold">5:00 - 6:00</div>
-                          <div className="text-xs text-slate-400">First Void Grubs/Dragon</div>
+                          <div className="text-xs text-slate-400">Void Grubs • First Dragon</div>
                         </div>
                         <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                          <div className="text-yellow-400 font-bold">8:00 - 10:00</div>
-                          <div className="text-xs text-slate-400">Rift Herald • Tower Plays</div>
+                          <div className="text-yellow-400 font-bold">14:00</div>
+                          <div className="text-xs text-slate-400">Rift Herald Spawns</div>
                         </div>
                         <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                          <div className="text-green-400 font-bold">14:00 - 16:00</div>
-                          <div className="text-xs text-slate-400">Tier 1 Falls • Roaming</div>
+                          <div className="text-green-400 font-bold">14:00+</div>
+                          <div className="text-xs text-slate-400">Tier 2 Turret Plates Active</div>
                         </div>
                         <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
                           <div className="text-blue-400 font-bold">20:00</div>
@@ -863,7 +864,7 @@ export default function App() {
                         </div>
                         <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
                           <div className="text-purple-400 font-bold">35:00+</div>
-                          <div className="text-xs text-slate-400">Elder Dragon • One Fight</div>
+                          <div className="text-xs text-slate-400">Elder Dragon • One Fight Wins</div>
                         </div>
                       </div>
                     </div>
